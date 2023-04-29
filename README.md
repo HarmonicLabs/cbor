@@ -2,6 +2,12 @@
 
 [Specification](https://datatracker.ietf.org/doc/html/rfc7049)
 
+## Installation
+
+```bash
+npm install @harmoniclabs/cbor
+```
+
 ## Getting started
 
 ```ts
