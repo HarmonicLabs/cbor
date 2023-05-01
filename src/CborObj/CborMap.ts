@@ -1,6 +1,14 @@
-import { Cloneable } from "../utils/Cloneable";
-import { CborObj, cborObjFromRaw, isRawCborObj, RawCborObj } from "./CborObj";
+import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
+import { CborObj, cborObjFromRaw, isRawCborObj, RawCborObj } from ".";
 import { ToRawObj } from "./interfaces/ToRawObj";
+
+export interface CborMapOptions {
+    indefinite?: boolean
+}
+
+const defaultOpts: Required<CborMapOptions> = Object.freeze({
+    indefinite: false
+})
 
 export type RawCborMapEntry = {
     k: RawCborObj,
@@ -8,7 +16,8 @@ export type RawCborMapEntry = {
 };
 
 export type RawCborMap = {
-    map: RawCborMapEntry[]
+    map: RawCborMapEntry[],
+    options?: CborMapOptions
 }
 
 export function isRawCborMap( m: RawCborMap ): boolean
@@ -43,7 +52,7 @@ export type CborMapEntry = {
 };
 
 export class CborMap
-    implements ToRawObj, Cloneable<CborMap>
+    implements ToRawObj
 {
     private _map : CborMapEntry[];
     public get map() : CborMapEntry[]
@@ -57,9 +66,22 @@ export class CborMap
             });
     }
     
-    constructor( map: CborMapEntry[] )
+    readonly indefinite!: boolean;
+
+    constructor( map: CborMapEntry[], options?: CborMapOptions )
     {
         this._map = map;
+
+        const {
+            indefinite
+        } = {
+            ...defaultOpts,
+            ...options
+        };
+
+        defineReadOnlyProperty(
+            this, "indefinite", Boolean( indefinite )
+        );
     }
 
     toRawObj(): RawCborMap
@@ -71,12 +93,20 @@ export class CborMap
                         k: entry.k.toRawObj(),
                         v: entry.v.toRawObj()
                     };
-                })
+                }),
+            options : {
+                indefinite: this.indefinite
+            }
         };
     }
 
     clone(): CborMap
     {
-        return new CborMap( this.map );
+        return new CborMap(
+            this.map,
+            {
+                indefinite: this.indefinite
+            }
+        );
     }
 }

@@ -1,6 +1,6 @@
-import type { CborObj } from "../CborObj/CborObj";
+import type { CborObj } from "../CborObj";
 import { CborString } from "../CborString";
-import { isCborObj } from "../CborObj/CborObj";
+import { isCborObj } from "../CborObj";
 import { isMajorTypeTag, MajorType } from "./Constants";
 import { CborBytes } from "../CborObj/CborBytes";
 import { CborText } from "../CborObj/CborText";
@@ -11,9 +11,8 @@ import { CborSimple } from "../CborObj/CborSimple";
 import { CborUInt } from "../CborObj/CborUInt";
 import { CborNegInt } from "../CborObj/CborNegInt";
 import { fromHex, fromUtf8, isUint8Array, readBigUInt64BE, readFloat32BE, readFloat64BE, readUInt16BE, readUInt32BE, readUInt8, toUtf8, writeBigUInt64BE, writeFloat64BE, writeUInt16BE, writeUInt32BE, writeUInt8 } from "@harmoniclabs/uint8array-utils";
-import { assert } from "../utils/assert";
-import { CborParseError } from "../errors/BaseCborError/CborParseError";
 import { BaseCborError } from "../errors/BaseCborError";
+import { assert } from "../utils/assert";
 
 /**
  * @private to the module; not needed elsewhere
@@ -276,13 +275,20 @@ class CborEncoding
         {
             const map = cObj.map;
 
-            this.appendTypeAndLength( MajorType.map, map.length );
+            if( cObj.indefinite )
+                this.appendUInt8( 0xbf );
+            else
+                this.appendTypeAndLength( MajorType.map, map.length );
+
             for( let i = 0; i < map.length; i++ )
             {
                 this.appendCborObjEncoding( map[i].k );
                 this.appendCborObjEncoding( map[i].v );
             }
 
+            if( cObj.indefinite )
+                this.appendUInt8( 0xff );
+                
             return;
         }
 
@@ -497,7 +503,7 @@ export class Cbor
             if (addInfos === 31)
                 return BigInt( -1 ); // indefinite length element follows
 
-            throw new CborParseError( "Invalid length encoding while parsing CBOR" );
+            throw new BaseCborError( "Invalid length encoding while parsing CBOR" );
         }
 
         function getIndefiniteElemLengthOfType( majorType: MajorType ): bigint
@@ -510,7 +516,7 @@ export class Cbor
             const elemLength = getLength( headerByte & 0b000_11111 );
 
             if( elemLength <  0 || (headerByte >> 5 !== majorType ) )
-                throw new CborParseError( "unexpected nested indefinite length element" );
+                throw new BaseCborError( "unexpected nested indefinite length element" );
 
             return elemLength;
         }
@@ -540,7 +546,7 @@ export class Cbor
                 ( major < 2 || major > 6 )
             )
             {
-                throw new CborParseError( "unexpected indefinite length element while parsing CBOR" );
+                throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
             }
 
             switch( major )
@@ -668,12 +674,12 @@ export class Cbor
                     // flaots handled at the beginning of the function
                     // since length isn't required
 
-                    throw new CborParseError(
+                    throw new BaseCborError(
                         "unrecognized simple value"
                     );
 
                 default:
-                    throw new CborParseError(
+                    throw new BaseCborError(
                         "unrecognized majorType: " + major
                     );
             }
