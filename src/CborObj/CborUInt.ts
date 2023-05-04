@@ -8,13 +8,12 @@ export type RawCborUInt = {
 
 export function isRawCborUnsigned( unsign: RawCborUInt ): boolean
 {
-    if( typeof unsign !== "object" ) return false;
+    if( typeof unsign !== "object" || unsign === null ) return false;
     
     const keys = Object.keys( unsign );
 
     return (
-        keys.length === 1 &&
-        keys[0] === "uint"  &&
+        keys.includes("uint")  &&
         typeof unsign.uint === "bigint" &&
         unsign.uint >= 0
     );

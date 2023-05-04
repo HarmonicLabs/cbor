@@ -22,21 +22,19 @@ export type RawCborMap = {
 
 export function isRawCborMap( m: RawCborMap ): boolean
 {
-    if( typeof m !== "object" ) return false;
+    if( typeof m !== "object" || m === null ) return false;
 
     const keys = Object.keys( m );
 
     return (
-        keys.length === 1 &&
-        keys[0] === "map" &&
+        keys.includes("map") &&
         Array.isArray( m.map ) &&
         m.map.every( entry => {
-            if( typeof entry !== "object" ) return false;
+            if( typeof entry !== "object" || entry === null ) return false;
 
             const entryKeys = Object.keys( entry ); 
             
             return (
-                entryKeys.length === 2      &&
                 entryKeys.includes( "k" )   &&
                 isRawCborObj( entry.k )     &&
                 entryKeys.includes( "v" )   &&

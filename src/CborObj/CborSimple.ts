@@ -24,13 +24,12 @@ export type RawCborSimple = {
 
 export function isRawCborSimple( s: RawCborSimple ): boolean
 {
-    if( typeof s !== "object" ) return false;
+    if( typeof s !== "object" || s === null ) return false;
 
     const keys = Object.keys( s );
 
     return (
-        keys.length === 1 &&
-        keys[0] === "simple" &&
+        keys.includes("simple") &&
         isSimpleCborValue( s.simple )
     );
 }

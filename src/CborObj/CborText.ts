@@ -8,13 +8,12 @@ export type RawCborText = {
 
 export function isRawCborText( t: RawCborText ): boolean
 {
-    if( typeof t !== "object" ) return false;
+    if( typeof t !== "object" || t === null ) return false;
 
     const keys = Object.keys( t );
 
     return (
-        keys.length === 1 &&
-        keys[0] === "text" &&
+        keys.includes("text") &&
         typeof t.text === "string"
     );
 }

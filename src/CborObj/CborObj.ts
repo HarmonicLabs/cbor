@@ -57,48 +57,40 @@ export function isRawCborObj( rawCborObj: RawCborObj ): boolean
 
     const keys = Object.keys( rawCborObj );
 
-    if( keys.length <= 0 || keys.length > 2 ) return false;
+    if( keys.length <= 0 ) return false;
 
-    if( keys.length === 2 )
+    if( keys.includes("array") )
     {
-        if( keys.includes( "tag" ) && keys.includes( "data" ) )
-            return isRawCborObj( (rawCborObj as RawCborTag).data );
-        
-        if( keys.includes("options") )
-            return ( 
-                keys.includes("array") && 
-                Array.isArray( (rawCborObj as RawCborArray).array ) &&
-                (rawCborObj as RawCborArray).array.every( isRawCborObj )
-            );
+        return Array.isArray( (rawCborObj as RawCborArray).array ) &&
+        (rawCborObj as RawCborArray).array.every( isRawCborObj );
+    }
 
-        return false;
+    if( keys.includes("map") )
+    {
+        return Array.isArray( (rawCborObj as RawCborMap).map &&
+        (rawCborObj as RawCborMap).map.every(
+            entry => isRawCborObj( entry.k ) && isRawCborObj( entry.v )
+        ));
+    }
+
+    if( keys.includes( "tag" ) )
+    {
+        return keys.includes( "data" ) &&
+        isRawCborObj( (rawCborObj as RawCborTag).data );
     }
     
-    const k = keys[0];
+    const includes = (k: string) => keys.includes(k);
 
     return (
-        ( k === "neg"                                              &&
+        ( includes("neg") &&
         typeof (rawCborObj as RawCborNegInt).neg === "bigint" &&
         (rawCborObj as RawCborNegInt).neg < 0 )                                                 ||
-        ( k === "uint" &&
+        ( includes("uint") &&
         typeof (rawCborObj as RawCborUInt).uint === "bigint" &&
         (rawCborObj as RawCborUInt).uint >= 0)                                                  ||
-        ( k === "bytes" && isUint8Array( (rawCborObj as RawCborBytes).bytes ) )              ||
-        ( k === "text" && typeof (rawCborObj as RawCborText).text === "string")                 ||
-
-        ( k === "array" && Array.isArray( (rawCborObj as RawCborArray).array ) &&
-            (rawCborObj as RawCborArray).array.every( isRawCborObj ) 
-        )                                                                                       ||
-
-        ( k === "map" && Array.isArray( (rawCborObj as RawCborMap).map ) && 
-        (rawCborObj as RawCborMap).map.every(
-                entry => isRawCborObj( entry.k ) && isRawCborObj( entry.v )
-            )
-        )                                                                                       ||
-
-        // tag done in the two keys case
-
-        ( k === "simple" && isSimpleCborValue( (rawCborObj as RawCborSimple).simple ) )
+        ( includes("bytes") && isUint8Array( (rawCborObj as RawCborBytes).bytes ) )                 ||
+        ( includes("text") && typeof (rawCborObj as RawCborText).text === "string")                 ||
+        ( includes("simple") && isSimpleCborValue( (rawCborObj as RawCborSimple).simple ) )
     );
 }
 

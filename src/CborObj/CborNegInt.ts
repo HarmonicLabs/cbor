@@ -8,13 +8,12 @@ export type RawCborNegInt = {
 
 export function isRawCborNegative( neg: RawCborNegInt ): boolean
 {
-    if( typeof neg !== "object" ) return false;
+    if( typeof neg !== "object" || neg === null ) return false;
     
     const keys = Object.keys( neg );
 
     return (
-        keys.length === 1 &&
-        keys[0] === "neg"  &&
+        keys.includes("neg")  &&
         typeof neg.neg === "bigint" &&
         neg.neg < 0
     );

@@ -9,13 +9,12 @@ export type RawCborBytes = {
 
 export function isRawCborBytes( b: RawCborBytes ): boolean
 {
-    if( typeof b !== "object" ) return false;
+    if( typeof b !== "object" || b === null ) return false;
     
     const keys = Object.keys( b );
 
     return (
-        keys.length === 1 &&
-        keys[0] === "bytes"  &&
+        keys.includes("bytes") &&
         isUint8Array( b.bytes )
     );
 }

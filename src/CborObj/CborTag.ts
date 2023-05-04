@@ -11,12 +11,11 @@ export type RawCborTag = {
 
 export function isRawCborTag( t: RawCborTag ): boolean
 {
-    if( typeof t !== "object" ) return false;
+    if( typeof t !== "object" || t === null ) return false;
 
     const keys = Object.keys( t );
 
     return (
-        keys.length === 2 &&
         keys.includes( "tag" ) &&
         keys.includes( "data" ) &&
         canBeUInteger( t.tag ) &&
