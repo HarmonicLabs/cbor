@@ -67,10 +67,10 @@ export function isRawCborObj( rawCborObj: RawCborObj ): boolean
 
     if( keys.includes("map") )
     {
-        return Array.isArray( (rawCborObj as RawCborMap).map &&
+        return Array.isArray( (rawCborObj as RawCborMap).map ) &&
         (rawCborObj as RawCborMap).map.every(
             entry => isRawCborObj( entry.k ) && isRawCborObj( entry.v )
-        ));
+        );
     }
 
     if( keys.includes( "tag" ) )
