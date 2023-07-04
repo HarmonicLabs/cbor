@@ -45,7 +45,16 @@ export class CborPositiveRational extends CborTag
     static fromNumber( n: number ): CborPositiveRational
     {
         const [ a, b ] = n.toString().split(".");
+        /** 
+         * b might be undefinded (eg. whole numbers)
+         * @since patch 1.1.2
+        **/
+        if(!(typeof b === "string"))
+        {
+            return new CborPositiveRational( Number( a ), 1 );
+        }
         return new CborPositiveRational(
+            // `a + b` is string concatenation
             Number( a + b ),
             Number(`1e${b.length}`)
         );

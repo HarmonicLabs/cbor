@@ -354,9 +354,13 @@ export class Cbor
 
     public static parse( cbor: CborString | Uint8Array | string ): CborObj
     {
+        return Cbor.parseWithOffset( cbor ).parsed;
+    }
+    public static parseWithOffset( cbor: CborString | Uint8Array | string ): { parsed: CborObj, offset: number }
+    {
         if( typeof cbor === "string" ) cbor = fromHex( cbor )
         assert(
-            isUint8Array( cbor ) || CborString.isStrictInstance( cbor ),
+            ( cbor instanceof Uint8Array ) || CborString.isStrictInstance( cbor ),
             "in 'Cbor.parse' expected an instance of 'CborString' or a 'Uint8Array' as input; got: " + cbor
         );
         
@@ -510,7 +514,7 @@ export class Cbor
         {
             const headerByte = Number( getUInt8().num );
 
-            if( headerByte === 0xff ) // breack indefinite
+            if( headerByte === 0xff ) // break indefinite
                 return BigInt( -1 );
             
             const elemLength = getLength( headerByte & 0b000_11111 );
@@ -666,10 +670,10 @@ export class Cbor
                     
                     const nLen = Number( length );
 
-                    if( nLen === 20 ) return new CborSimple( false );       // f4
-                    if( nLen === 21 ) return new CborSimple( true );        // f5
-                    if( nLen === 22 ) return new CborSimple( null );        // f6
-                    if( nLen === 23 ) return new CborSimple( undefined );   // f7
+                    if( nLen === 20 ) return new CborSimple( false );       // 0xf4
+                    if( nLen === 21 ) return new CborSimple( true );        // 0xf5
+                    if( nLen === 22 ) return new CborSimple( null );        // 0xf6
+                    if( nLen === 23 ) return new CborSimple( undefined );   // 0xf7
 
                     // flaots handled at the beginning of the function
                     // since length isn't required
@@ -685,6 +689,6 @@ export class Cbor
             }
         }
 
-        return parseCborObj();
+        return { parsed: parseCborObj(), offset };
     }
 }
