@@ -572,8 +572,8 @@ export class Cbor
 
                         for (let i = 0; i < chunks.length; ++i)
                         {
-                          fullUint8Array.set(chunks[i], fullUint8ArrayOffset);
-                          fullUint8ArrayOffset += chunks[i].length;
+                            fullUint8Array.set(chunks[i], fullUint8ArrayOffset);
+                            fullUint8ArrayOffset += chunks[i].length;
                         }
 
                         return new CborBytes(
@@ -626,7 +626,7 @@ export class Cbor
                         }
                     }
 
-                    return new CborArray( arrOfCbors );
+                    return new CborArray( arrOfCbors, { indefinite: length < 0 } );
 
                 case MajorType.map:
 
@@ -653,7 +653,7 @@ export class Cbor
                         }
                     }
 
-                    return new CborMap( entries );
+                    return new CborMap( entries, { indefinite: length < 0 } );
 
                 case MajorType.tag:
                     return new CborTag( Number( length ) , parseCborObj() );
