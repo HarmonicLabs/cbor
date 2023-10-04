@@ -387,54 +387,46 @@ export class Cbor
                 )
         }
 
-        function getUInt8(): CborUInt
+        function getUInt8(): number
         {
             incrementOffsetBy( 1 );
-            return new CborUInt(
-                readUInt8(
-                    bytes,
-                    offset - 1 // offset has been incremented prior reading
-                )
-            )
+            return readUInt8(
+                bytes,
+                offset - 1 // offset has been incremented prior reading
+            );
         };
 
-        function getUInt16(): CborUInt
+        function getUInt16(): number
         {
             incrementOffsetBy( 2 );
-            return new CborUInt(
-                readUInt16BE(
-                    bytes,
-                    offset - 2 // offset has been incremented prior reading
-                )
-            )
+            return readUInt16BE(
+                bytes,
+                offset - 2 // offset has been incremented prior reading
+            );
         };
 
-        function getUInt32(): CborUInt
+        function getUInt32(): number
         {
             incrementOffsetBy( 4 );
-            return new CborUInt(
-                readUInt32BE(
-                    bytes,
-                    offset - 4 // offset has been incremented prior reading
-                )
-            )
+            return readUInt32BE(
+                bytes,
+                offset - 4 // offset has been incremented prior reading
+            );
         };
 
-        function getUInt64(): CborUInt
+        function getUInt64(): bigint
         {
             incrementOffsetBy( 8 );
-            return new CborUInt(
-                readBigUInt64BE(
-                    bytes,
-                    offset - 8 // offset has been incremented prior reading
-                )
-            )
+            return readBigUInt64BE(
+                bytes,
+                offset - 8 // offset has been incremented prior reading
+            );
         };
 
         function getFloat16(): CborSimple
         {
             // increments the offset here
-            const floatBits = Number( getUInt16().num );
+            const floatBits = getUInt16();
 
             let tempArrayBuffer = new ArrayBuffer(4);
             let tempDataView = new DataView(tempArrayBuffer);
@@ -497,13 +489,13 @@ export class Cbor
             if (addInfos < 24)
                 return BigInt( addInfos );
             if (addInfos === 24)
-                return getUInt8().num;
+                return BigInt( getUInt8() );
             if (addInfos === 25)
-                return getUInt16().num;
+                return BigInt( getUInt16() );
             if (addInfos === 26)
-                return getUInt32().num;
+                return BigInt( getUInt32() );
             if (addInfos === 27)
-                return getUInt64().num;
+                return getUInt64();
             if (addInfos === 31)
                 return BigInt( -1 ); // indefinite length element follows
 
@@ -512,7 +504,7 @@ export class Cbor
 
         function getIndefiniteElemLengthOfType( majorType: MajorType ): bigint
         {
-            const headerByte = Number( getUInt8().num );
+            const headerByte = getUInt8();
 
             if( headerByte === 0xff ) // break indefinite
                 return BigInt( -1 );
@@ -533,7 +525,7 @@ export class Cbor
 
         function parseCborObj(): CborObj
         {
-            const headerByte = Number( getUInt8().num );
+            const headerByte = getUInt8();
             const major : MajorType = headerByte >> 5;
             const addInfos = headerByte & 0b000_11111;
 

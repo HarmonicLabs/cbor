@@ -8,7 +8,9 @@ export enum MajorType {
     map      = 5,   // 101x_xxxx // 
     tag      = 6,   // 110x_xxxx // 
     float_or_simple    = 7    // 111x_xxxx // 
-}
+};
+
+Object.freeze( MajorType );
 
 export function isMajorTypeTag( majorTag: MajorType ): boolean
 {
@@ -28,6 +30,8 @@ export enum UInt8MajorType {
     tag      = 0b110_00000, 
     float_or_simple    = 0b111_00000
 }
+
+Object.freeze( UInt8MajorType );
 
 export function isUInt8MajorType( byte : UInt8MajorType ): boolean
 {
