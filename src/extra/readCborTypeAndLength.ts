@@ -5,7 +5,6 @@ export function readCborTypeAndLength( bytes: Uint8Array ): { type: MajorType, l
 {
     if( bytes.length < 1 ) return undefined;
 
-
     const headerByte = bytes[0];
 
     const major : MajorType = headerByte >> 5;

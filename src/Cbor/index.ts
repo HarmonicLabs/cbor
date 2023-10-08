@@ -10,9 +10,14 @@ import { CborTag } from "../CborObj/CborTag";
 import { CborSimple } from "../CborObj/CborSimple";
 import { CborUInt } from "../CborObj/CborUInt";
 import { CborNegInt } from "../CborObj/CborNegInt";
-import { fromHex, fromUtf8, isUint8Array, readBigUInt64BE, readFloat32BE, readFloat64BE, readUInt16BE, readUInt32BE, readUInt8, toUtf8, writeBigUInt64BE, writeFloat64BE, writeUInt16BE, writeUInt32BE, writeUInt8 } from "@harmoniclabs/uint8array-utils";
+import { fromHex, fromUtf8, isUint8Array, readBigUInt64BE, readFloat32BE, readFloat64BE, readUint16BE, readUInt16BE, readUInt32BE, readUInt8, toUtf8, writeBigUInt64BE, writeFloat64BE, writeUInt16BE, writeUInt32BE, writeUInt8 } from "@harmoniclabs/uint8array-utils";
 import { BaseCborError } from "../errors/BaseCborError";
 import { assert } from "../utils/assert";
+import { LazyCborObj } from "../LazyCborObj/LazyCborObj";
+import { readCborTypeAndLength } from "../extra";
+import { LazyCborArray } from "../LazyCborObj/LazyCborArray";
+import { LazyCborMap, LazyCborMapEntry } from "../LazyCborObj/LazyCborMap";
+import { LazyCborTag } from "../LazyCborObj/LazyCborTag";
 
 /**
  * @private to the module; not needed elsewhere
@@ -683,4 +688,490 @@ export class Cbor
 
         return { parsed: parseCborObj(), offset };
     }
+    public static parseLazy( cbor: CborString | Uint8Array | string ): LazyCborObj
+    {
+        return Cbor.parseLazyWithOffset( cbor ).parsed;
+    }
+    public static parseLazyWithOffset( cbor: CborString | Uint8Array | string ): { parsed: LazyCborObj, offset: number }
+    {
+        if( typeof cbor === "string" ) cbor = fromHex( cbor )
+        assert(
+            ( cbor instanceof Uint8Array ) || CborString.isStrictInstance( cbor ),
+            "in 'Cbor.parse' expected an instance of 'CborString' or a 'Uint8Array' as input; got: " + cbor
+        );
+        
+        const bytes: Uint8Array = cbor instanceof CborString ?
+            cbor.toBuffer() :
+            cbor;
+
+        /**
+         * number of bytes red
+         * */
+        let offset: number = 0;
+
+        function incrementOffsetBy( l: number ): void
+        {
+            offset += l;
+        }
+
+        function getBytesOfLength( l: number ): Uint8Array
+        {
+            incrementOffsetBy( l );
+            return bytes.slice(
+                    offset - l, // offset has been incremented prior reading
+                    offset
+                )
+        }
+
+        function getUInt8(): number
+        {
+            incrementOffsetBy( 1 );
+            return readUInt8(
+                bytes,
+                offset - 1 // offset has been incremented prior reading
+            );
+        };
+
+        function getUInt16(): number
+        {
+            incrementOffsetBy( 2 );
+            return readUInt16BE(
+                bytes,
+                offset - 2 // offset has been incremented prior reading
+            );
+        };
+
+        function getUInt32(): number
+        {
+            incrementOffsetBy( 4 );
+            return readUInt32BE(
+                bytes,
+                offset - 4 // offset has been incremented prior reading
+            );
+        };
+
+        function getUInt64(): bigint
+        {
+            incrementOffsetBy( 8 );
+            return readBigUInt64BE(
+                bytes,
+                offset - 8 // offset has been incremented prior reading
+            );
+        };
+
+        function getFloat16(): CborSimple
+        {
+            // increments the offset here
+            const floatBits = getUInt16();
+
+            let tempArrayBuffer = new ArrayBuffer(4);
+            let tempDataView = new DataView(tempArrayBuffer);
+
+            const sign =      floatBits & 0b1_00000_0000000000;
+            let exponent =    floatBits & 0b0_11111_0000000000;
+            let fraction =    floatBits & 0b0_00000_1111111111;
+
+            if (exponent === 0x7c00)
+                exponent = 0xff << 10;
+            else if (exponent !== 0)
+                exponent += (127 - 15) << 10;
+            else if (fraction !== 0)
+                return new CborSimple(
+                    (sign !== 0 ? -1 : 1) * fraction * 5.960464477539063e-8,
+                    "float"
+                );
+            
+            tempDataView.setUint32(0, sign << 16 | exponent << 13 | fraction << 13);
+
+            return new CborSimple(
+                tempDataView.getFloat32( 0 ),
+                "float"
+            );
+        }
+
+        function getFloat32(): CborSimple
+        {
+            incrementOffsetBy( 4 );
+            return new CborSimple(
+                readFloat32BE(
+                    bytes,
+                    offset - 4 // offset has been incremented prior reading
+                ),
+                "float"
+            );
+        }
+
+        function getFloat64(): CborSimple
+        {
+            incrementOffsetBy( 8 );
+            return new CborSimple(
+                readFloat64BE(
+                    bytes,
+                    offset - 8 // offset has been incremented prior reading
+                ),
+                "float"
+            );
+        }
+
+        function incrementIfBreak(): boolean
+        {
+            if( readUInt8( bytes, offset ) !== 0xff ) return false;
+            incrementOffsetBy( 1 );
+            return true;
+        }
+
+        function getLength( addInfos: number ): bigint
+        {
+            if (addInfos < 24)
+                return BigInt( addInfos );
+            if (addInfos === 24)
+                return BigInt( getUInt8() );
+            if (addInfos === 25)
+                return BigInt( getUInt16() );
+            if (addInfos === 26)
+                return BigInt( getUInt32() );
+            if (addInfos === 27)
+                return getUInt64();
+            if (addInfos === 31)
+                return BigInt( -1 ); // indefinite length element follows
+
+            throw new BaseCborError( "Invalid length encoding while parsing CBOR" );
+        }
+
+        function getIndefiniteElemLengthOfType( majorType: MajorType ): bigint
+        {
+            const headerByte = getUInt8();
+
+            if( headerByte === 0xff ) // break indefinite
+                return BigInt( -1 );
+            
+            const elemLength = getLength( headerByte & 0b000_11111 );
+
+            if( elemLength <  0 || (headerByte >> 5 !== majorType ) )
+                throw new BaseCborError( "unexpected nested indefinite length element" );
+
+            return elemLength;
+        }
+
+        function getTextOfLength( l: number ): string
+        {
+            // increments offset while getting the bytes
+            return toUtf8( getBytesOfLength( l ) );
+        }
+
+        function getNextElemBytes(): Uint8Array
+        {
+            const elemStart = offset;
+
+            const headerByte = getUInt8();
+            const major : MajorType = headerByte >> 5;
+            const addInfos = headerByte & 0b000_11111;
+
+            if( major === MajorType.float_or_simple )
+            {
+                if( addInfos === 25 ) return bytes.slice( elemStart, elemStart + 2 );
+                if( addInfos === 26 ) return bytes.slice( elemStart, elemStart + 3 );
+                if( addInfos === 27 ) return bytes.slice( elemStart, elemStart + 5 );
+            }
+
+            const preLenOffset = offset;
+            const length = getLength( addInfos );
+            const postLenOffset = offset;
+
+            if( length < 0 &&
+                ( major < 2 || major > 6 )
+            )
+            {
+                throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
+            }
+
+            switch( major )
+            {
+                case MajorType.unsigned: return bytes.slice( elemStart, postLenOffset );
+                case MajorType.negative: return bytes.slice( elemStart, postLenOffset );
+                case MajorType.bytes:
+
+                    if (length < 0) // data in UPLC v1.*.* serializes as indefinite length
+                    {
+                        let elementLength: bigint;
+                        while ( (elementLength = getIndefiniteElemLengthOfType( major ) ) >= 0)
+                        {
+                            // this operation is done when calling
+                            // `getBytesOfLength( Number( elementLength )`
+                            /// in the non-lazy verision
+                            incrementOffsetBy( Number( elementLength ) )
+                        }
+
+                        return bytes.slice( elemStart, offset );
+                    }
+                    
+                    // definite length
+
+                    // void getBytesOfLength( Number( length ) )
+                    incrementOffsetBy( Number( length ) ); // this is the only part we need of the above function
+
+                    return bytes.slice( elemStart, offset )
+
+                case MajorType.text:
+                    
+                    if( length < 0 ) // indefinite length
+                    {
+                        let str = "";
+                        let l: number = 0;
+
+                        while(
+                            (
+                                l = Number( getIndefiniteElemLengthOfType( MajorType.text ) )
+                            ) >= 0
+                        )
+                        {
+                            // str += getTextOfLength( l );
+                            incrementOffsetBy( l );
+                        }
+
+                        return bytes.slice( elemStart, offset );
+                    }
+
+                    // void getTextOfLength( Number( length ) );
+                    incrementOffsetBy( Number( length ) ); // this is the only part we need of the above function
+
+                    return bytes.slice( elemStart, offset );
+
+                case MajorType.array:
+
+                    if( length < 0 )
+                    {
+                        while( !incrementIfBreak() )
+                        {
+                            void getNextElemBytes();
+                        }
+                    }
+                    else
+                    {
+                        for( let i = 0; i < length; i++ )
+                        {
+                            void getNextElemBytes();
+                        }
+                    }
+
+                    return bytes.slice( elemStart, offset );
+
+                case MajorType.map:
+
+                    if( length < 0 )
+                    {
+                        while( !incrementIfBreak() )
+                        {
+                            void getNextElemBytes();
+                            void getNextElemBytes();
+                        }
+                    }
+                    else
+                    {
+                        for ( let i = 0; i < length ; i++ )
+                        {
+                            void getNextElemBytes();
+                            void getNextElemBytes();
+                        }
+                    }
+
+                    return bytes.slice( elemStart, offset );
+
+                case MajorType.tag:
+                    void getNextElemBytes();
+                    return bytes.slice( elemStart, offset );
+
+                case MajorType.float_or_simple:
+                    
+                    const nLen = Number( length );
+
+                    if( nLen === 20 ) return bytes.slice( elemStart, offset ); // 0xf4
+                    if( nLen === 21 ) return bytes.slice( elemStart, offset ); // 0xf5
+                    if( nLen === 22 ) return bytes.slice( elemStart, offset ); // 0xf6
+                    if( nLen === 23 ) return bytes.slice( elemStart, offset ); // 0xf7
+
+                    // flaots handled at the beginning of the function
+                    // since length isn't required
+
+                    throw new BaseCborError(
+                        "unrecognized simple value"
+                    );
+
+                default:
+                    throw new BaseCborError(
+                        "unrecognized majorType: " + major
+                    );
+            }
+        }
+
+        function parseCborObj(): LazyCborObj
+        {
+            const headerByte = getUInt8();
+            const major : MajorType = headerByte >> 5;
+            const addInfos = headerByte & 0b000_11111;
+
+            if( major === MajorType.float_or_simple )
+            {
+                if( addInfos === 25 ) return getFloat16();
+                if( addInfos === 26 ) return getFloat32();
+                if( addInfos === 27 ) return getFloat64();
+            }
+
+            const length = getLength( addInfos );
+
+            if( length < 0 &&
+                ( major < 2 || major > 6 )
+            )
+            {
+                throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
+            }
+
+            switch( major )
+            {
+                case MajorType.unsigned: return new CborUInt( length );
+                case MajorType.negative: return new CborNegInt( -BigInt( 1 ) -length );
+                case MajorType.bytes:
+
+                    if (length < 0) // data in UPLC v1.*.* serializes as indefinite length
+                    {
+                        const chunks: Uint8Array[] = [];
+                        let fullUint8ArrayLength: number = 0;
+
+                        let elementLength: bigint;
+                        while ( (elementLength = getIndefiniteElemLengthOfType( major ) ) >= 0)
+                        {
+                            fullUint8ArrayLength += Number( elementLength );
+                            chunks.push(
+                                getBytesOfLength( // increments offset
+                                    Number( elementLength )
+                                )
+                            );
+                        }
+
+                        let fullUint8Array = new Uint8Array(fullUint8ArrayLength);
+                        let fullUint8ArrayOffset = 0;
+
+                        for (let i = 0; i < chunks.length; ++i)
+                        {
+                            fullUint8Array.set(chunks[i], fullUint8ArrayOffset);
+                            fullUint8ArrayOffset += chunks[i].length;
+                        }
+
+                        return new CborBytes(
+                            Uint8Array.from( fullUint8Array )
+                        );
+                    }
+                    
+                    // definite length
+                    return new CborBytes(
+                        getBytesOfLength( Number( length ) )
+                    );
+
+                case MajorType.text:
+                    
+                    if( length < 0 ) // indefinite length
+                    {
+                        let str = "";
+                        let l: number = 0;
+
+                        while(
+                            (
+                                l = Number( getIndefiniteElemLengthOfType( MajorType.text ) )
+                            ) >= 0
+                        )
+                        {
+                            str += getTextOfLength( l );
+                        }
+
+                        return new CborText( str );
+                    }
+
+                    return new CborText( getTextOfLength( Number( length ) ) );
+
+                case MajorType.array:
+
+                    if( length < 0 )
+                    {
+                        const arr: Uint8Array[] = [];
+
+                        while( !incrementIfBreak() )
+                        {
+                            arr.push( getNextElemBytes() );
+                        }
+
+                        return new LazyCborArray( arr, { indefinite: true } );
+                    }
+                    else
+                    {
+                        const arr = new Array<Uint8Array>( Number( length ) );
+
+                        for( let i = 0; i < length; i++ )
+                        {
+                            arr[i] = getNextElemBytes();
+                        }
+
+                        return new LazyCborArray( arr, { indefinite: false } );
+                    }
+
+
+                case MajorType.map:
+
+
+                    if( length < 0 )
+                    {
+                        const entries: LazyCborMapEntry[] = [];
+
+                        while( !incrementIfBreak() )
+                        {
+                            entries.push({
+                                k: getNextElemBytes(),
+                                v: getNextElemBytes()
+                            });
+                        }
+
+                        return new LazyCborMap( entries, { indefinite: true } );
+                    }
+                    else
+                    {
+                        const entries = new Array<LazyCborMapEntry>( Number( length ) );
+
+                        for ( let i = 0; i < length ; i++ )
+                        {
+                            entries[i] = {
+                                k: getNextElemBytes(),
+                                v: getNextElemBytes()
+                            };
+                        }
+                        return new LazyCborMap( entries, { indefinite: true } );
+                    }
+
+                case MajorType.tag:
+                    return new LazyCborTag( Number( length ) , parseCborObj() );
+
+                case MajorType.float_or_simple:
+                    
+                    const nLen = Number( length );
+
+                    if( nLen === 20 ) return new CborSimple( false );       // 0xf4
+                    if( nLen === 21 ) return new CborSimple( true );        // 0xf5
+                    if( nLen === 22 ) return new CborSimple( null );        // 0xf6
+                    if( nLen === 23 ) return new CborSimple( undefined );   // 0xf7
+
+                    // flaots handled at the beginning of the function
+                    // since length isn't required
+
+                    throw new BaseCborError(
+                        "unrecognized simple value"
+                    );
+
+                default:
+                    throw new BaseCborError(
+                        "unrecognized majorType: " + major
+                    );
+            }
+        }
+
+        return { parsed: parseCborObj(), offset };
+    }
+
 }

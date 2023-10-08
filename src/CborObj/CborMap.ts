@@ -8,7 +8,7 @@ export interface CborMapOptions {
 
 const defaultOpts: Required<CborMapOptions> = Object.freeze({
     indefinite: false
-})
+});
 
 export type RawCborMapEntry = {
     k: RawCborObj,
@@ -102,9 +102,7 @@ export class CborMap
     {
         return new CborMap(
             this.map,
-            {
-                indefinite: this.indefinite
-            }
+            { indefinite: this.indefinite }
         );
     }
 }

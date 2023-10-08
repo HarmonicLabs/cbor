@@ -1,8 +1,8 @@
 import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
-import JsRuntime from "../utils/JsRuntime";
 import { CborObj, cborObjFromRaw, isCborObj, isRawCborObj, RawCborObj } from "./CborObj";
 import { ToRawObj } from "./interfaces/ToRawObj";
+import { assert } from "../utils/assert";
 
 export interface CborArrayOptions {
     indefinite?: boolean
@@ -28,7 +28,7 @@ export function isRawCborArray( arr: RawCborArray ): boolean
 
 const defaultOpts: Required<CborArrayOptions> = Object.freeze({
     indefinite: false
-})
+});
 
 export class CborArray
     implements ToRawObj, Cloneable<CborArray>
@@ -48,7 +48,7 @@ export class CborArray
     
     constructor( array: CborObj[], options?: CborArrayOptions )
     {
-        JsRuntime.assert(
+        assert(
             Array.isArray( array ) &&
             array.every( isCborObj ),
             "in 'CborArray' constructor: invalid input; got: " + array
@@ -82,9 +82,7 @@ export class CborArray
     {
         return new CborArray(
             this.array,
-            {
-                indefinite: this.indefinite
-            }
+            { indefinite: this.indefinite }
         );
     }
 }
