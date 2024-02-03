@@ -18,6 +18,7 @@ import { readCborTypeAndLength } from "../extra";
 import { LazyCborArray } from "../LazyCborObj/LazyCborArray";
 import { LazyCborMap, LazyCborMapEntry } from "../LazyCborObj/LazyCborMap";
 import { LazyCborTag } from "../LazyCborObj/LazyCborTag";
+import { CborParseError } from "../errors";
 
 /**
  * @private to the module; not needed elsewhere
@@ -385,11 +386,15 @@ export class Cbor
 
         function getBytesOfLength( l: number ): Uint8Array
         {
+            if( bytes.length < offset + l ) throw new CborParseError(
+                "not enoug bytes; missing at least " + 
+                (( offset + l ) - bytes.length) + " bytes"
+            );
             incrementOffsetBy( l );
             return bytes.slice(
-                    offset - l, // offset has been incremented prior reading
-                    offset
-                )
+                offset - l, // offset has been incremented prior reading
+                offset
+            );
         }
 
         function getUInt8(): number
@@ -716,6 +721,10 @@ export class Cbor
 
         function getBytesOfLength( l: number ): Uint8Array
         {
+            if( bytes.length < offset + l ) throw new CborParseError(
+                "not enoug bytes; missing at least " + 
+                (( offset + l ) - bytes.length) + " bytes"
+            );
             incrementOffsetBy( l );
             return bytes.slice(
                     offset - l, // offset has been incremented prior reading

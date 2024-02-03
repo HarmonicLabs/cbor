@@ -8,7 +8,8 @@ describe("CborPostiveRational", () => {
 
             function testId( n : number )
             {
-                expect( CborPositiveRational.fromNumber( n ).toNumber() ).toEqual( n );
+                const rational = CborPositiveRational.fromNumber( n );
+                expect( rational.toNumber() ).toEqual( n );
             }
 
             testId( 1 );
@@ -16,6 +17,10 @@ describe("CborPostiveRational", () => {
             testId( Math.PI );
             testId( Math.E );
 
-        })
+            testId( 0.0577 );
+            testId( 0.0000721 );
+
+        });
+
     })
 })

@@ -1,5 +1,5 @@
 import { cborObjFromRaw } from ".."
-import { fromUtf8 } from "@harmoniclabs/uint8array-utils";
+import { fromHex, fromUtf8 } from "@harmoniclabs/uint8array-utils";
 import { CborArray } from "../CborArray";
 import { CborBytes } from "../CborBytes";
 import { CborMap } from "../CborMap";
@@ -238,5 +238,55 @@ describe( "cborObjFromRaw", () => {
         ).toEqual(
             new CborSimple( 2.4 )
         );
+    });
+
+    test.only("value data", () => {
+         const cbor = cborObjFromRaw({
+            "map": [
+              {
+                "k": {
+                  "bytes":  fromHex("")
+                },
+                "v": {
+                  "map": [
+                    {
+                      "k": {
+                        "bytes":  fromHex("")
+                      },
+                      "v": {
+                        "uint": BigInt("2612020")
+                      }
+                    }
+                  ],
+                  "options": {
+                    "indefinite": false
+                  }
+                }
+              },
+              {
+                "k": {
+                  "bytes":  fromHex("e02ca1eb4f70ce9240c1f2fc8ee62404c0f7d636119e135619f3f043")
+                },
+                "v": {
+                  "map": [
+                    {
+                      "k": {
+                        "bytes":  fromHex("6974616d6165")
+                      },
+                      "v": {
+                        "uint": BigInt("1")
+                      }
+                    }
+                  ],
+                  "options": {
+                    "indefinite": false
+                  }
+                }
+              }
+            ],
+            "options": {
+              "indefinite": false
+            }
+        })
     })
 })
