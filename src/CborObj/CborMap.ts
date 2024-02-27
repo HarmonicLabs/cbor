@@ -52,31 +52,17 @@ export type CborMapEntry = {
 export class CborMap
     implements ToRawObj
 {
-    private _map : CborMapEntry[];
-    public get map() : CborMapEntry[]
-    {
-        return this._map
-            .map( entry => {
-                return {
-                    k: cborObjFromRaw( entry.k.toRawObj() ),
-                    v: cborObjFromRaw( entry.v.toRawObj() )
-                }
-            });
-    }
+    readonly map : CborMapEntry[];
     
     readonly indefinite!: boolean;
 
     constructor( map: CborMapEntry[], options?: CborMapOptions )
     {
-        this._map = map;
+        const indefinite = options?.indefinite === true ? true : defaultOpts.indefinite;
 
-        const {
-            indefinite
-        } = {
-            ...defaultOpts,
-            ...options
-        };
-
+        defineReadOnlyProperty(
+            this, "map", map
+        );
         defineReadOnlyProperty(
             this, "indefinite", Boolean( indefinite )
         );
@@ -85,13 +71,12 @@ export class CborMap
     toRawObj(): RawCborMap
     {
         return {
-            map: this._map
-                .map( entry => {
-                    return {
-                        k: entry.k.toRawObj(),
-                        v: entry.v.toRawObj()
-                    };
-                }),
+            map: this.map.map( entry => {
+                return {
+                    k: entry.k.toRawObj(),
+                    v: entry.v.toRawObj()
+                };
+            }),
             options : {
                 indefinite: this.indefinite
             }
@@ -101,7 +86,10 @@ export class CborMap
     clone(): CborMap
     {
         return new CborMap(
-            this.map,
+            this.map.map( entry => ({
+                k: entry.k.clone(),
+                v: entry.v.clone()
+            })),
             { indefinite: this.indefinite }
         );
     }

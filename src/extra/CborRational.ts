@@ -65,4 +65,9 @@ export class CborPositiveRational extends CborTag
         return Number( this.num ) / Number( this.den );
     }
 
+    valueOf(): number
+    {
+        return this.toNumber()
+    }
+
 }

@@ -1,3 +1,4 @@
+import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
 import { ToRawObj } from "./interfaces/ToRawObj";
@@ -22,23 +23,21 @@ export function isRawCborNegative( neg: RawCborNegInt ): boolean
 export class CborNegInt
     implements ToRawObj, Cloneable<CborNegInt>
 {
-    private _neg : bigint;
-    get num(): bigint { return this._neg }
+    readonly num : bigint;
     
     constructor( neg: number | bigint )
     {
-        if( typeof neg === "number" )
-        {
-            neg = BigInt( neg );
-        }
+        if( typeof neg === "number" ) neg = BigInt( neg );
 
         assert(
             typeof neg === "bigint" &&
             neg < BigInt( 0 ),
             "neg CBOR numbers must be less than 0; got: " + neg
         );
-
-        this._neg = neg;
+        
+        defineReadOnlyProperty(
+            this, "num", neg
+        );
     }
 
     toRawObj(): RawCborNegInt

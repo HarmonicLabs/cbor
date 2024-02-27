@@ -2,6 +2,7 @@ import { isUint8Array } from "@harmoniclabs/uint8array-utils";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
+import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 
 export type RawCborBytes = {
     bytes: Uint8Array
@@ -22,28 +23,33 @@ export function isRawCborBytes( b: RawCborBytes ): boolean
 export class CborBytes
     implements ToRawObj, Cloneable<CborBytes>
 {
-    private _buff : Uint8Array;
-    get buffer(): Uint8Array { return this._buff.slice() }
+    /** @deprecated use `bytes` instead */
+    get buffer(): Uint8Array { return this.bytes; }
+    readonly bytes: Uint8Array;
     
     constructor( bytes: Uint8Array )
     {
         assert(
-            isUint8Array(bytes),
+            isUint8Array( bytes ),
             "invalid buffer in CborBytes"
         );
 
-        this._buff = bytes;
+        defineReadOnlyProperty(
+            // if `slice` is removed here update `clone` method
+            this, "bytes", Uint8Array.prototype.slice.call( bytes )
+        );
     }
 
     toRawObj(): RawCborBytes
     {
         return {
-            bytes: this.buffer
+            bytes: Uint8Array.prototype.slice.call( this.bytes )
         };
     }
 
     clone(): CborBytes
     {
-        return new CborBytes( this._buff.slice() );
+        // `this.bytes` cloned in constructor
+        return new CborBytes( this.bytes );
     }
 }

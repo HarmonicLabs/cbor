@@ -33,17 +33,7 @@ const defaultOpts: Required<CborArrayOptions> = Object.freeze({
 export class CborArray
     implements ToRawObj, Cloneable<CborArray>
 {
-    private _array : CborObj[];
-    public get array() : CborObj[]
-    {
-        return this._array
-            .map( cObj => 
-                cborObjFromRaw(
-                    cObj.toRawObj()
-                )
-            );
-    }
-
+    readonly array: CborObj[];
     readonly indefinite!: boolean;
     
     constructor( array: CborObj[], options?: CborArrayOptions )
@@ -54,17 +44,13 @@ export class CborArray
             "in 'CborArray' constructor: invalid input; got: " + array
         );
 
-        const {
-            indefinite
-        } = {
-            ...defaultOpts,
-            ...options
-        };
-
-        this._array = array;
+        const indefinite = options?.indefinite === true ? true : defaultOpts.indefinite;
 
         defineReadOnlyProperty(
-            this, "indefinite", Boolean( indefinite )
+            this, "array", array
+        );
+        defineReadOnlyProperty(
+            this, "indefinite", indefinite === true
         );
     }
 
@@ -72,9 +58,9 @@ export class CborArray
     {
         return {
             array: this.array.map( cborObj => cborObj.toRawObj() ),
-            options: {
+            options: this.indefinite === true ? {
                 indefinite: this.indefinite
-            }
+            } : undefined
         };
     }
 

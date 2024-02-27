@@ -1,3 +1,4 @@
+import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
 import { canBeUInteger } from "../utils/ints";
@@ -26,18 +27,13 @@ export function isRawCborTag( t: RawCborTag ): boolean
 export class CborTag
     implements ToRawObj, Cloneable<CborTag>
 {
-    private _tag: bigint
-    get tag(): bigint { return this._tag }
+    readonly tag: bigint
 
-    private _data: CborObj
-    get data(): CborObj { return cborObjFromRaw( this._data.toRawObj() ) }
+    readonly data: CborObj
 
     constructor( tag: number | bigint , data: CborObj )
     {
-        if( typeof tag === "number" )
-        {
-            tag = BigInt( tag );
-        }
+        if( typeof tag === "number" ) tag = BigInt( tag );
 
         assert(
             typeof tag === "bigint" &&
@@ -45,8 +41,12 @@ export class CborTag
             "using direct value constructor; either 'tag' is not a number or 'data' is missing"
         );
 
-        this._tag = tag;
-        this._data = data;
+        defineReadOnlyProperty(
+            this, "tag", tag
+        );
+        defineReadOnlyProperty(
+            this, "data", data
+        )
     }
 
     toRawObj(): RawCborTag

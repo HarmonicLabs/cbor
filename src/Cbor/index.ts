@@ -727,9 +727,9 @@ export class Cbor
             );
             incrementOffsetBy( l );
             return bytes.slice(
-                    offset - l, // offset has been incremented prior reading
-                    offset
-                )
+                offset - l, // offset has been incremented prior reading
+                offset
+            );
         }
 
         function getUInt8(): number
