@@ -1,7 +1,6 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
+import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
-import { ToRawObj } from "./interfaces/ToRawObj";
 
 export type RawCborUInt = {
     uint: bigint
@@ -23,7 +22,11 @@ export function isRawCborUnsigned( unsign: RawCborUInt ): boolean
 export class CborUInt
     implements ToRawObj, Cloneable<CborUInt>
 {
-    readonly num : bigint;
+    private readonly _num : bigint;
+    get num(): bigint
+    {
+        return this._num;
+    }
     
     constructor( uint: number | bigint )
     {
@@ -38,9 +41,7 @@ export class CborUInt
             "uint CBOR numbers must be greater or equal 0; got: " + uint
         );
 
-        defineReadOnlyProperty(
-            this, "num", uint
-        );
+        this._num = uint;
     }
 
     toRawObj(): RawCborUInt
