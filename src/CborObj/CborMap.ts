@@ -1,14 +1,9 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
-import { CborObj, cborObjFromRaw, isRawCborObj, RawCborObj } from ".";
+import { CborObj, isRawCborObj, RawCborObj } from ".";
 import { ToRawObj } from "./interfaces/ToRawObj";
 
 export interface CborMapOptions {
     indefinite?: boolean
 }
-
-const defaultOpts: Required<CborMapOptions> = Object.freeze({
-    indefinite: false
-});
 
 export type RawCborMapEntry = {
     k: RawCborObj,
@@ -52,26 +47,28 @@ export type CborMapEntry = {
 export class CborMap
     implements ToRawObj
 {
-    readonly map : CborMapEntry[];
+    private readonly _map : CborMapEntry[];
+    get map(): CborMapEntry[]
+    {
+        return this._map;
+    }
     
-    readonly indefinite!: boolean;
+    private readonly _indefinite!: boolean;
+    get indefinite(): boolean
+    {
+        return this._indefinite;
+    }
 
     constructor( map: CborMapEntry[], options?: CborMapOptions )
     {
-        const indefinite = options?.indefinite === true ? true : defaultOpts.indefinite;
-
-        defineReadOnlyProperty(
-            this, "map", map
-        );
-        defineReadOnlyProperty(
-            this, "indefinite", Boolean( indefinite )
-        );
+        this._indefinite = options?.indefinite === true ? true : false;
+        this._map = map;
     }
 
     toRawObj(): RawCborMap
     {
         return {
-            map: this.map.map( entry => {
+            map: this.map.map(( entry ) => {
                 return {
                     k: entry.k.toRawObj(),
                     v: entry.v.toRawObj()
@@ -86,7 +83,7 @@ export class CborMap
     clone(): CborMap
     {
         return new CborMap(
-            this.map.map( entry => ({
+            this.map.map(( entry ) => ({
                 k: entry.k.clone(),
                 v: entry.v.clone()
             })),
