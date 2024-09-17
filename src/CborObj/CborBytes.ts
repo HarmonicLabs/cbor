@@ -20,6 +20,11 @@ export function isRawCborBytes( b: RawCborBytes ): boolean
     );
 }
 
+export interface CborBytesMeatadata {
+    headerAddInfos: number // 24
+    headerFollowingBytes: Uint8Array // [0x01]
+}
+
 export class CborBytes
     implements ToRawObj, Cloneable<CborBytes>
 {
@@ -35,6 +40,8 @@ export class CborBytes
     readonly chunks: Uint8Array[];
 
     readonly isDefiniteLength: boolean
+
+    readonly meta
     
     constructor( bytes: Uint8Array, restChunks: Uint8Array[] | undefined = undefined )
     {

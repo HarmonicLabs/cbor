@@ -38,9 +38,7 @@ export class CborUInt
             "uint CBOR numbers must be greater or equal 0; got: " + uint
         );
 
-        defineReadOnlyProperty(
-            this, "num", uint
-        );
+        this.num = uint;
     }
 
     toRawObj(): RawCborUInt
