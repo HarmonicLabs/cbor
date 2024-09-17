@@ -1,7 +1,6 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
-import { Cloneable } from "../utils/Cloneable";
-import { CborObj, cborObjFromRaw, isCborObj, isRawCborObj, RawCborObj } from "./CborObj";
+import { CborObj, isCborObj, isRawCborObj, RawCborObj } from "./CborObj";
 import { ToRawObj } from "./interfaces/ToRawObj";
+import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
 
 export interface CborArrayOptions {
@@ -33,8 +32,17 @@ const defaultOpts: Required<CborArrayOptions> = Object.freeze({
 export class CborArray
     implements ToRawObj, Cloneable<CborArray>
 {
-    readonly array: CborObj[];
-    readonly indefinite!: boolean;
+    private readonly _array: CborObj[];
+    get array(): CborObj[]
+    {
+        return this._array;
+    }
+
+    private readonly _indefinite!: boolean;
+    get indefinite(): boolean
+    {
+        return this._indefinite;
+    }
     
     constructor( array: CborObj[], options?: CborArrayOptions )
     {
@@ -46,12 +54,8 @@ export class CborArray
 
         const indefinite = options?.indefinite === true ? true : defaultOpts.indefinite;
 
-        defineReadOnlyProperty(
-            this, "array", array
-        );
-        defineReadOnlyProperty(
-            this, "indefinite", indefinite === true
-        );
+        this._array = array;
+        this._indefinite = indefinite;
     }
 
     toRawObj(): RawCborArray

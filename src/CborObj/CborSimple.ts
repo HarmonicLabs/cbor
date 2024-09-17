@@ -1,7 +1,6 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
+import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
-import { ToRawObj } from "./interfaces/ToRawObj";
 
 type SimpleValue = boolean | undefined | null | number;
 
@@ -38,8 +37,17 @@ export function isRawCborSimple( s: RawCborSimple ): boolean
 export class CborSimple
     implements ToRawObj, Cloneable<CborSimple>
 {
-    readonly simple: SimpleValue;
-    readonly numAs: SimpleNumAs;
+    private readonly _simple: SimpleValue;
+    get simple(): SimpleValue
+    {
+        return this._simple;
+    }
+
+    private readonly _numAs: SimpleNumAs;
+    get numAs(): SimpleNumAs
+    {
+        return this._numAs;
+    }
 
     constructor( simple: SimpleValue, interpretNumAs?: SimpleNumAs )
     {
@@ -67,12 +75,8 @@ export class CborSimple
             "invalid cbor simple value; received: " + simple
         );
 
-        defineReadOnlyProperty(
-            this, "simple", simple
-        );
-        defineReadOnlyProperty(
-            this, "numAs", interpretNumAs
-        );
+        this._simple = simple;
+        this._numAs = interpretNumAs;
     }
 
     toRawObj(): RawCborSimple
@@ -103,7 +107,7 @@ export class CborSimple
     {
         return new CborSimple( undefined );
     }
-    static simpleNumber( n: number ): CborSimple
+    static simple( n: number ): CborSimple
     {
         if( typeof n !== "number" ) n = 0;
         return new CborSimple( n, "simple" );
