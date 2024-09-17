@@ -36,7 +36,7 @@ export class CborBytes
     **/
     get bytes(): Uint8Array
     {
-        return this._isDefiniteLength ? this._bytes : concatBytes( this._bytes, ( this.restChunks ?? [] ) );
+        return this._bytes;
     }
 
     private readonly _chunks: Uint8Array[];
@@ -71,10 +71,16 @@ export class CborBytes
 
         this._isDefiniteLength = (!_originalRestWasEmptyArray) && restChunks.length === 0;
 
-        this._restChunks = this.isDefiniteLength ? restChunks : undefined;
+        const lengthTot = this.isDefiniteLength ? bytes.length : bytes.length + restChunks.reduce<number>(( a, b ) => a + b.length, 0 );
 
-        this._bytes = bytes;
-        this._chunks = this.isDefiniteLength ? [ bytes ] : [ bytes, ...( restChunks ?? [] ) ];
+        const headByte = addHeadByte(lengthTot);
+        const updatedBytes = new Uint8Array(headByte.length + bytes.length);
+        updatedBytes.set(headByte, 0);
+        updatedBytes.set(bytes, headByte.length);
+
+        this._restChunks = this.isDefiniteLength ? restChunks : undefined;
+        this._bytes = this.isDefiniteLength ? updatedBytes : concatBytes( updatedBytes, ( this.restChunks ?? [] ) );
+        this._chunks = this.isDefiniteLength ? [ this.bytes ] : [ this.bytes, ...( this.restChunks ?? [] ) ];
     }
 
     toRawObj(): RawCborBytes
@@ -98,20 +104,44 @@ export class CborBytes
             rest.map(( chunk ) => ( Uint8Array.prototype.slice.call( chunk ) ))
         );
     }
+
+    static decode( bytes: CborBytes ): Uint8Array
+    {
+        // TODO
+        return new Uint8Array();
+    }
 }
 
 function concatBytes( fst: Uint8Array, rest: Uint8Array[] ): Uint8Array
 {
     // pre allocate resulting byte
-    const result = new Uint8Array( rest.reduce<number>( (a,b) => a + b.length, fst.length ) );
+    const result = new Uint8Array( rest.reduce<number>(( a, b ) => a + b.length, fst.length ) );
     let offset = fst.length;
     result.set( fst, 0 ); // copy first
     let elem: Uint8Array;
+
     for( let i = 0; i < rest.length; i++ )
     {
         elem = rest[i];
         result.set( elem, offset ); // copy ith
         offset += elem.length;
     }
+
     return result;
+}
+
+function addHeadByte( lengthTot: number ): Uint8Array
+{
+    if( lengthTot < 24 )
+    {
+        const baseValue = 0x40;                                                         // 0b010_00000
+        const headByte = baseValue + lengthTot;
+        return new Uint8Array([ headByte ]);                                            // from 0x40 to 0x57
+    }
+    else if( lengthTot === 24 ) return new Uint8Array([ 0x58 ]);                        // 0b010_11000  (1 more byte follows)
+    else if( lengthTot === 25 ) return new Uint8Array([ 0x59 ]);                        // 0b010_11001  (2 more bytes follow)
+    else if( lengthTot === 26 ) return new Uint8Array([ 0x5A ]);                        // 0b010_11010  (4 more bytes follow)
+    else if( lengthTot === 27 ) return new Uint8Array([ 0x5B ]);                        // 0b010_11011  (8 more bytes follow)
+    else if( lengthTot === 31 ) return new Uint8Array([ 0x5F ]);                        // 0b010_11111  (follow bytes 'till break tag)
+    else throw new Error( "values between 28 and 30 are reserved for future uses" );    // from 0x5C to 0x5E
 }

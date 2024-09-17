@@ -55,7 +55,7 @@ describe( "Cbor.encode", () => {
             cborObjFromRaw({
                 text: "ciaone"
             })
-        ) ).toEqual( new CborString( "666369616F6E65" ) );
+        ) ).toEqual( new CborString( "666369616f6e65" ) );
 
     });
     
@@ -65,7 +65,7 @@ describe( "Cbor.encode", () => {
             cborObjFromRaw({
                 bytes: fromAscii( "ciaone" )
             })
-        ) ).toEqual( new CborString( "466369616F6E65" ) );
+        ) ).toEqual( new CborString( "466369616f6e65" ) );
 
     });
     
@@ -103,7 +103,7 @@ describe( "Cbor.encode", () => {
                     }
                 ]
             })
-        ) ).toEqual( new CborString( "A2466369616F6E65676D6F6E646F6E6501820203" ) );
+        ) ).toEqual( new CborString( "a2466369616f6e65676d6f6e646f6e6501820203" ) );
 
     });
 
@@ -114,14 +114,14 @@ describe( "Cbor.encode", () => {
                 tag: 6,
                 data: { array: [] }
             })
-        ) ).toEqual( new CborString( "C680" ) );
+        ) ).toEqual( new CborString( "c680" ) );
 
         expect( Cbor.encode(
             cborObjFromRaw({
                 tag: 6,
                 data: { uint: BigInt( 2 ) }
             })
-        ) ).toEqual( new CborString( "C602" ) );
+        ) ).toEqual( new CborString( "c602" ) );
 
     });
 
