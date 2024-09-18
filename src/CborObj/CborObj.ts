@@ -2,15 +2,15 @@
 Intermediate data type that allows an easier conversion from (and to) CBOR to (and from) JSON serializables objects
 */
 
-import { isUint8Array } from "@harmoniclabs/uint8array-utils";
+import { CborSimple, isRawCborSimple, isSimpleCborValue, RawCborSimple } from "./CborSimple";
+import { CborNegInt, RawCborNegInt, isRawCborNegative } from "./CborNegInt";
 import { CborArray, isRawCborArray, RawCborArray } from "./CborArray";
 import { CborBytes, isRawCborBytes, RawCborBytes } from "./CborBytes";
-import { CborMap, isRawCborMap, RawCborMap } from "./CborMap";
-import { CborNegInt, RawCborNegInt, isRawCborNegative } from "./CborNegInt";
-import { CborSimple, isRawCborSimple, isSimpleCborValue, RawCborSimple } from "./CborSimple";
-import { CborTag, isRawCborTag, RawCborTag } from "./CborTag";
-import { CborText, isRawCborText, RawCborText } from "./CborText";
 import { CborUInt, RawCborUInt, isRawCborUnsigned } from "./CborUInt";
+import { CborText, isRawCborText, RawCborText } from "./CborText";
+import { isUint8Array } from "@harmoniclabs/uint8array-utils";
+import { CborMap, isRawCborMap, RawCborMap } from "./CborMap";
+import { CborTag, isRawCborTag, RawCborTag } from "./CborTag";
 import { BaseCborError } from "../errors";
 import { assert } from "../utils/assert";
 
@@ -34,14 +34,14 @@ export type CborObj
     | CborTag
     | CborSimple;
 
-export function isCborObj<T extends object>( cborObj: T ): cborObj is (T & CborObj)
+export function isCborObj<T extends object>( cborObj: T ): cborObj is ( T & CborObj )
 {
     const proto = Object.getPrototypeOf( cborObj );
     
     // only strict instances
     return (
-        proto === CborNegInt.prototype ||
-        proto === CborUInt.prototype ||
+        proto === CborNegInt.prototype      ||
+        proto === CborUInt.prototype        ||
         proto === CborBytes.prototype       ||
         proto === CborText.prototype        ||
         proto === CborArray.prototype       ||
@@ -68,7 +68,7 @@ export function isRawCborObj( rawCborObj: RawCborObj ): boolean
     if( keys.includes("map") )
     {
         return Array.isArray( (rawCborObj as RawCborMap).map ) &&
-        (rawCborObj as RawCborMap).map.every(
+        ( rawCborObj as RawCborMap ).map.every(
             entry => isRawCborObj( entry.k ) && isRawCborObj( entry.v )
         );
     }
@@ -76,21 +76,34 @@ export function isRawCborObj( rawCborObj: RawCborObj ): boolean
     if( keys.includes( "tag" ) )
     {
         return keys.includes( "data" ) &&
-        isRawCborObj( (rawCborObj as RawCborTag).data );
+        isRawCborObj( ( rawCborObj as RawCborTag ).data );
     }
     
-    const includes = (k: string) => keys.includes(k);
+    const includes = ( k: string ) => keys.includes(k);
 
     return (
-        ( includes("neg") &&
-        typeof (rawCborObj as RawCborNegInt).neg === "bigint" &&
-        (rawCborObj as RawCborNegInt).neg < 0 )                                                 ||
-        ( includes("uint") &&
-        typeof (rawCborObj as RawCborUInt).uint === "bigint" &&
-        (rawCborObj as RawCborUInt).uint >= 0)                                                  ||
-        ( includes("bytes") && isUint8Array( (rawCborObj as RawCborBytes).bytes ) )                 ||
-        ( includes("text") && typeof (rawCborObj as RawCborText).text === "string")                 ||
-        ( includes("simple") && isSimpleCborValue( (rawCborObj as RawCborSimple).simple ) )
+        ( 
+            includes( "neg" ) &&
+            typeof( rawCborObj as RawCborNegInt ).neg === "bigint" &&
+            ( rawCborObj as RawCborNegInt ).neg < 0 
+        )                                                                                           ||
+        ( 
+            includes( "uint" ) &&
+            typeof( rawCborObj as RawCborUInt ).uint === "bigint" &&
+            ( rawCborObj as RawCborUInt ).uint >= 0
+        )                                                                                           ||
+        ( 
+            includes( "bytes" ) && 
+            isUint8Array( (rawCborObj as RawCborBytes).bytes ) 
+        )                                                                                           ||
+        ( 
+            includes( "text" ) && 
+            typeof( rawCborObj as RawCborText ).text === "string"
+        )                                                                                           ||
+        ( 
+            includes( "simple" ) && 
+            isSimpleCborValue( ( rawCborObj as RawCborSimple ).simple ) 
+        )
     );
 }
 

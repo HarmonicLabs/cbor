@@ -2,7 +2,6 @@ import { isUint8Array } from "@harmoniclabs/uint8array-utils";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 
 export type RawCborBytes = {
     bytes: Uint8Array
@@ -29,18 +28,46 @@ export class CborBytes
     implements ToRawObj, Cloneable<CborBytes>
 {
     /** @deprecated use `bytes` instead */
-    get buffer(): Uint8Array { return this.bytes; }
-    readonly bytes: Uint8Array;
+    get buffer(): Uint8Array { 
+        return this.bytes; 
+    }
+
+    private readonly _bytes: Uint8Array;
     /**
-     * if the bytes where of definite length this just wraps the `bytes`
+     * if the bytes were of definite length this just wraps the `bytes`
      * property in a single element array
      * 
-     * if the bytes where of indefinite length this array has more than one element
+     * if the bytes were of indefinite length this array has more than one element
     **/
-    readonly chunks: Uint8Array[];
+    get bytes(): Uint8Array
+    {
+        return this._bytes;
+    }
 
-    readonly isDefiniteLength: boolean;
+    private readonly _chunks: Uint8Array[];
+    get chunks(): Uint8Array[]
+    {
+        return this._chunks;
+    }
 
+    private readonly _restChunks: Uint8Array[] | undefined;
+    get restChunks(): Uint8Array[] | undefined
+    {
+        return this._restChunks;
+    }
+
+    private readonly _isDefiniteLength: boolean;
+    get isDefiniteLength(): boolean
+    {
+        return this._isDefiniteLength;
+    }
+
+    private readonly _metadata: CborBytesMeatadata;
+    get metadata(): CborBytesMeatadata
+    {
+        return this._metadata;
+    }
+    
     constructor( bytes: Uint8Array, restChunks: Uint8Array[] | undefined = undefined )
     {
         assert(
@@ -51,32 +78,16 @@ export class CborBytes
         const _originalRestWasEmptyArray = Array.isArray( restChunks ) && restChunks.length === 0;
         
         restChunks = Array.isArray( restChunks ) ? restChunks.slice() : [];
-        restChunks = restChunks.filter( chunk => chunk instanceof Uint8Array );
+        restChunks = restChunks.filter(( chunk ) => ( chunk instanceof Uint8Array ));
 
-        const _isDefiniteLength = (!_originalRestWasEmptyArray) && restChunks.length === 0;
+        this._isDefiniteLength = (!_originalRestWasEmptyArray) && restChunks.length === 0;
 
-        Object.defineProperties(
-            this, {
-                bytes: {
-                    get: _isDefiniteLength ? () => bytes : () => concatBytes( bytes, (restChunks ?? []) ),
-                    set: () => {},
-                    enumerable: true,
-                    configurable: false
-                },
-                chunks: {
-                    value: Object.freeze( _isDefiniteLength ? [ bytes ] : [ bytes, ...(restChunks ?? []) ] ),
-                    writable: false,
-                    enumerable: true,
-                    configurable: false
-                },
-                isDefiniteLength: {
-                    value: _isDefiniteLength,
-                    writable: false,
-                    enumerable: true,
-                    configurable: false
-                }
-            }
-        );
+        this._restChunks = this.isDefiniteLength ? restChunks : undefined;
+        this._bytes = this.isDefiniteLength ? bytes : concatBytes( bytes, ( this.restChunks ?? [] ) );
+        this._chunks = this.isDefiniteLength ? [ this.bytes ] : [ this.bytes, ...( this.restChunks ?? [] ) ];
+
+        //TODO
+        // this._metadata = metadata;
     }
 
     toRawObj(): RawCborBytes
@@ -97,7 +108,7 @@ export class CborBytes
 
         return new CborBytes(
             Uint8Array.prototype.slice.call( bytes ),
-            rest.map( chunk => Uint8Array.prototype.slice.call( chunk ) )
+            rest.map(( chunk ) => ( Uint8Array.prototype.slice.call( chunk ) ))
         );
     }
 }
@@ -105,15 +116,17 @@ export class CborBytes
 function concatBytes( fst: Uint8Array, rest: Uint8Array[] ): Uint8Array
 {
     // pre allocate resulting byte
-    const result = new Uint8Array( rest.reduce<number>( (a,b) => a + b.length, fst.length ) );
+    const result = new Uint8Array( rest.reduce<number>(( a, b ) => a + b.length, fst.length ) );
     let offset = fst.length;
     result.set( fst, 0 ); // copy first
     let elem: Uint8Array;
+
     for( let i = 0; i < rest.length; i++ )
     {
         elem = rest[i];
         result.set( elem, offset ); // copy ith
         offset += elem.length;
     }
+
     return result;
 }
