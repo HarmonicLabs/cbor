@@ -39,10 +39,8 @@ export class CborBytes
     **/
     readonly chunks: Uint8Array[];
 
-    readonly isDefiniteLength: boolean
+    readonly isDefiniteLength: boolean;
 
-    readonly meta
-    
     constructor( bytes: Uint8Array, restChunks: Uint8Array[] | undefined = undefined )
     {
         assert(
