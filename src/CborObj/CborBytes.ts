@@ -2,6 +2,7 @@ import { isUint8Array } from "@harmoniclabs/uint8array-utils";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
+import { isObject } from "@harmoniclabs/obj-utils";
 
 export type RawCborBytes = {
     bytes: Uint8Array
@@ -22,6 +23,23 @@ export function isRawCborBytes( b: RawCborBytes ): boolean
 export interface CborBytesMeatadata {
     headerAddInfos: number // 24
     headerFollowingBytes: Uint8Array // [0x01]
+}
+
+export function isCborBytesMeatadata( stuff: any ): stuff is CborBytesMeatadata
+{
+    return (
+        isObject( stuff ) &&
+        typeof stuff.headerAddInfos === "number" &&
+        isUint8Array( stuff.headerFollowingBytes )
+    );
+}
+
+export function cloneCborBytesMetadata( meta: CborBytesMeatadata ): CborBytesMeatadata
+{
+    return {
+        headerAddInfos: meta.headerAddInfos,
+        headerFollowingBytes: Uint8Array.prototype.slice.call( meta.headerFollowingBytes )
+    };
 }
 
 export class CborBytes
@@ -62,13 +80,17 @@ export class CborBytes
         return this._isDefiniteLength;
     }
 
-    private readonly _metadata: CborBytesMeatadata;
-    get metadata(): CborBytesMeatadata
+    private readonly _metadata: CborBytesMeatadata | undefined; s
+    get metadata(): CborBytesMeatadata | undefined
     {
         return this._metadata;
     }
     
-    constructor( bytes: Uint8Array, restChunks: Uint8Array[] | undefined = undefined )
+    constructor(
+        bytes: Uint8Array,
+        restChunks: Uint8Array[] | undefined = undefined,
+        metadata?: CborBytesMeatadata
+    )
     {
         assert(
             isUint8Array( bytes ),
@@ -86,8 +108,12 @@ export class CborBytes
         this._bytes = this.isDefiniteLength ? bytes : concatBytes( bytes, ( this.restChunks ?? [] ) );
         this._chunks = this.isDefiniteLength ? [ this.bytes ] : [ this.bytes, ...( this.restChunks ?? [] ) ];
 
-        //TODO
-        // this._metadata = metadata;
+        this._metadata = undefined;
+
+        if( isCborBytesMeatadata( metadata ) )
+        {
+            this._metadata = cloneCborBytesMetadata( metadata );
+        }
     }
 
     toRawObj(): RawCborBytes

@@ -11,7 +11,7 @@ function getBytesFF( len: number = 0 ): Uint8Array
 
 describe("bytes", () => {
 
-    describe.only("empty bytes", () => {
+    describe("empty bytes", () => {
 
         const emptyBytes = new Uint8Array(0);
 
@@ -91,7 +91,7 @@ describe("bytes", () => {
 
         describe("indefinite length", () => {
 
-            test("empty with break", () => {
+            test.only("empty with break", () => {
 
                 const str = "5fff";
                 const parsed = Cbor.parse( str ) as CborBytes;
