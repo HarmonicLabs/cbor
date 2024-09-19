@@ -19,9 +19,9 @@ export function isRawCborBytes( b: RawCborBytes ): boolean
     );
 }
 
-export interface CborBytesMeatadata {
-    headerAddInfos: number // 24
-    headerFollowingBytes: Uint8Array // [0x01]
+export interface CborBytesMetadata {
+    headerTag: number                               // from [0x40] up to [0x5f]
+    tailTag?: number | undefined                    // [0xff]
 }
 
 export class CborBytes
@@ -50,20 +50,14 @@ export class CborBytes
         return this._chunks;
     }
 
-    private readonly _restChunks: Uint8Array[] | undefined;
-    get restChunks(): Uint8Array[] | undefined
-    {
-        return this._restChunks;
-    }
-
     private readonly _isDefiniteLength: boolean;
     get isDefiniteLength(): boolean
     {
         return this._isDefiniteLength;
     }
 
-    private readonly _metadata: CborBytesMeatadata;
-    get metadata(): CborBytesMeatadata
+    private readonly _metadata: CborBytesMetadata;
+    get metadata(): CborBytesMetadata
     {
         return this._metadata;
     }
@@ -75,6 +69,9 @@ export class CborBytes
             "invalid buffer in CborBytes"
         );
 
+        var headerTag = bytes[ 0 ];
+        bytes = bytes.slice( 1 );
+
         const _originalRestWasEmptyArray = Array.isArray( restChunks ) && restChunks.length === 0;
         
         restChunks = Array.isArray( restChunks ) ? restChunks.slice() : [];
@@ -82,12 +79,12 @@ export class CborBytes
 
         this._isDefiniteLength = (!_originalRestWasEmptyArray) && restChunks.length === 0;
 
-        this._restChunks = this.isDefiniteLength ? restChunks : undefined;
-        this._bytes = this.isDefiniteLength ? bytes : concatBytes( bytes, ( this.restChunks ?? [] ) );
-        this._chunks = this.isDefiniteLength ? [ this.bytes ] : [ this.bytes, ...( this.restChunks ?? [] ) ];
+        this._bytes = this.isDefiniteLength ? bytes : concatBytes( bytes, ( restChunks ?? [] ) );
+        this._chunks = this.isDefiniteLength ? [ bytes ] : [ bytes, ...( restChunks ?? [] ) ];
 
-        //TODO
-        // this._metadata = metadata;
+        this._metadata = {
+            headerTag
+        };
     }
 
     toRawObj(): RawCborBytes

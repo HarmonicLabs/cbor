@@ -286,22 +286,33 @@ class CborEncoding
             if( cObj.isDefiniteLength )
             {
                 const bs = cObj.bytes;
+
                 this.appendTypeAndLength( MajorType.bytes , bs.length );
+                // this.appendUInt8( cObj.metadata.headerTag );
+                
                 this.appendRawBytes( bs );
                 return;
             }
             else {
                 const chunks = cObj.chunks;
                 const nChunks = chunks.length;
+
                 this.appendUInt8( (MajorType.bytes << 5) | 31 );
+                // this.appendUInt8( cObj.metadata.headerTag );
+
                 let bs: Uint8Array;
                 for( let i = 0; i < nChunks; i++ )
                 {
                     bs = chunks[i];
+
                     this.appendTypeAndLength( MajorType.bytes , bs.length );
+                    // this.appendUInt8( cObj.metadata.headerTag );
+
                     this.appendRawBytes( bs );
                 }
+
                 this.appendUInt8( 0b111_11111 ); // break
+
                 return;
             }
         }
@@ -619,6 +630,8 @@ export class Cbor
                 case MajorType.negative: return new CborNegInt( -BigInt( 1 ) -length );
                 case MajorType.bytes:
 
+                    var mergedByteArray;
+
                     if (length < 0) // data in UPLC v1.*.* serializes as indefinite length
                     {
                         const chunks: Uint8Array[] = [];
@@ -633,23 +646,52 @@ export class Cbor
                             );
                         }
 
-                        if( chunks.length === 0 )
-                        return new CborBytes(
-                            new Uint8Array([]),
-                            []
-                        ); // empty indefinite length
+                        if( chunks.length === 0 ) {
+                            // empty indefinite length
 
+                            mergedByteArray = new Uint8Array( 1 );
+                            mergedByteArray.set( [0x5f] );
+                            mergedByteArray.set( new Uint8Array([]), 1 );
+
+                            // return new CborBytes(
+                            //     new Uint8Array([]),
+                            //     []
+                            // );
+                            return new CborBytes(
+                                mergedByteArray,
+                                []
+                            ); 
+                        }
+                        
+                         // indefinte length
                         const [ fst, ...rest ] = chunks;
 
+                        mergedByteArray = new Uint8Array( fst.length + 1 );
+                        mergedByteArray.set( [0x5f] );
+                        mergedByteArray.set( fst, 1 );
+
+                        // return new CborBytes(
+                        //     fst,
+                        //     rest
+                        // );
                         return new CborBytes(
-                            fst,
+                            mergedByteArray,
                             rest
-                        ); // indefinte length
+                        );
                     }
                     
                     // definite length
+
+                    mergedByteArray = new Uint8Array( Number( length ) + 1 );
+                    mergedByteArray.set( [headerByte] );
+                    mergedByteArray.set( getBytesOfLength( Number( length ) ), 1 );
+
+                    // return new CborBytes(
+                    //     getBytesOfLength( Number( length ) )
+                    // );
+
                     return new CborBytes(
-                        getBytesOfLength( Number( length ) )
+                        mergedByteArray
                     );
 
                 case MajorType.text:

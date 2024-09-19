@@ -1,8 +1,5 @@
-import { fromHex } from "@harmoniclabs/uint8array-utils";
-import { Cbor } from "../../Cbor";
-import { CborBytes } from "../CborBytes";
-import { CborTag } from "../CborTag";
 import { CborUInt } from "../CborUInt";
+import { Cbor } from "../../Cbor";
 
 describe("uint", () => {
 

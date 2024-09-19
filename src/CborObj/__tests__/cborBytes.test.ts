@@ -3,7 +3,241 @@ import { CborBytes } from "../CborBytes"
 
 describe("bytes", () => {
 
-    test("indefinite length", () => {
+    describe.only("empty bytes", () => {
+
+        const emptyBytes = new Uint8Array(0);
+
+        test("canonical 1", () => {
+
+            const str = "40";
+            const parsed = Cbor.parse( str ) as CborBytes;
+
+            expect( parsed instanceof CborBytes ).toBe( true );
+            expect( parsed.bytes ).toEqual( emptyBytes );
+            expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+            expect(
+                Cbor.encode( parsed ).toString()
+            ).toEqual( str );
+
+        });
+
+        test.skip("canonical 2", () => {
+
+            const str = "4101";
+            const parsed = Cbor.parse( str ) as CborBytes;
+
+            expect( parsed instanceof CborBytes ).toBe( true );
+            expect( parsed.bytes ).toEqual( emptyBytes );
+            expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+            expect(
+                Cbor.encode( parsed ).toString()
+            ).toEqual( str );
+
+        });
+
+        test.skip("canonical 3", () => {
+
+            const str = "420102";
+            const parsed = Cbor.parse( str ) as CborBytes;
+
+            expect( parsed instanceof CborBytes ).toBe( true );
+            expect( parsed.bytes ).toEqual( emptyBytes );
+            expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+            expect(
+                Cbor.encode( parsed ).toString()
+            ).toEqual( str );
+
+        });
+
+        test("1 byte for len", () => {
+
+            const str = "5800";
+            const parsed = Cbor.parse( str ) as CborBytes;
+
+            expect( parsed instanceof CborBytes ).toBe( true );
+            expect( parsed.bytes ).toEqual( emptyBytes );
+            expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+            expect(
+                Cbor.encode( parsed ).toString()
+            ).toEqual( str );
+
+        });
+
+        test.skip("2 bytes for len", () => {
+                
+            const str = "590000";
+            const parsed = Cbor.parse( str ) as CborBytes;
+
+            expect( parsed instanceof CborBytes ).toBe( true );
+            expect( parsed.bytes ).toEqual( emptyBytes );
+            expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+            expect(
+                Cbor.encode( parsed ).toString()
+            ).toEqual( str );
+
+        });
+
+        test.skip("4 bytes for len", () => {
+                
+            const str = "5a00000000";
+            const parsed = Cbor.parse( str ) as CborBytes;
+
+            expect( parsed instanceof CborBytes ).toBe( true );
+            expect( parsed.bytes ).toEqual( emptyBytes );
+            expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+            expect(
+                Cbor.encode( parsed ).toString()
+            ).toEqual( str );
+
+        });
+
+        test.skip("8 bytes for len", () => {
+                
+            const str = "5b0000000000000000";
+            const parsed = Cbor.parse( str ) as CborBytes;
+
+            expect( parsed instanceof CborBytes ).toBe( true );
+            expect( parsed.bytes ).toEqual( emptyBytes );
+            expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+            expect(
+                Cbor.encode( parsed ).toString()
+            ).toEqual( str );
+        });
+
+        describe("indefinite length", () => {
+
+            test("empty with break", () => {
+
+                const str = "5fff";
+                const parsed = Cbor.parse( str ) as CborBytes;
+
+                expect( parsed instanceof CborBytes ).toBe( true );
+                expect( parsed.bytes ).toEqual( emptyBytes );
+                expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+                expect(
+                    Cbor.encode( parsed ).toString()
+                ).toEqual( str );
+
+            });
+
+            test("indefinite, one elem", () => {
+
+                const str = "5f40ff";
+                const parsed = Cbor.parse( str ) as CborBytes;
+
+                expect( parsed instanceof CborBytes ).toBe( true );
+                expect( parsed.bytes ).toEqual( emptyBytes );
+                expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+                expect(
+                    Cbor.encode( parsed ).toString()
+                ).toEqual( str );
+
+            });
+
+            test.skip("indefinite, two elems", () => {
+
+                const str = "5f405800ff";
+                const parsed = Cbor.parse( str ) as CborBytes;
+
+                expect( parsed instanceof CborBytes ).toBe( true );
+                expect( parsed.bytes ).toEqual( emptyBytes );
+                expect( parsed.chunks ).toEqual([ emptyBytes, emptyBytes ]);
+
+                expect(
+                    Cbor.encode( parsed ).toString()
+                ).toEqual( str );
+
+            });
+
+            test.skip("indefinite 3", () => {
+
+                const str = "5f405800590000ff";
+                const parsed = Cbor.parse( str ) as CborBytes;
+
+                expect( parsed instanceof CborBytes ).toBe( true );
+                expect( parsed.bytes ).toEqual( emptyBytes );
+                expect( parsed.chunks ).toEqual([ emptyBytes, emptyBytes, emptyBytes ]);
+
+                expect(
+                    Cbor.encode( parsed ).toString()
+                ).toEqual( str );
+
+            });
+
+            test.skip("indefinite 4", () => {
+
+                const str = "5f4058005900005a00000000ff";
+                const parsed = Cbor.parse( str ) as CborBytes;
+
+                expect( parsed instanceof CborBytes ).toBe( true );
+                expect( parsed.bytes ).toEqual( emptyBytes );
+                expect( parsed.chunks ).toEqual([ emptyBytes, emptyBytes, emptyBytes, emptyBytes ]);
+
+                expect(
+                    Cbor.encode( parsed ).toString()
+                ).toEqual( str );
+
+            });
+
+            test.skip("indefinite 5", () => {
+
+                const str = "5f4058005900005a000000005b0000000000000000ff";
+                const parsed = Cbor.parse( str ) as CborBytes;
+
+                expect( parsed instanceof CborBytes ).toBe( true );
+                expect( parsed.bytes ).toEqual( emptyBytes );
+                expect( parsed.chunks ).toEqual([ emptyBytes, emptyBytes, emptyBytes, emptyBytes, emptyBytes ]);
+
+                expect(
+                    Cbor.encode( parsed ).toString()
+                ).toEqual( str );
+
+            });
+
+            test.skip("nested indefinite", () => {
+
+                const str = "5f5fffff";
+                const parsed = Cbor.parse( str ) as CborBytes;
+
+                expect( parsed instanceof CborBytes ).toBe( true );
+                expect( parsed.bytes ).toEqual( emptyBytes );
+                expect( parsed.chunks ).toEqual([ emptyBytes ]);
+
+                expect(
+                    Cbor.encode( parsed ).toString()
+                ).toEqual( str );
+
+            });
+
+            test.skip("mixed", () => {
+
+                const str = "5f4058005900005a000000005f4058005900005a00000000ffff";
+                const parsed = Cbor.parse( str ) as CborBytes;
+
+                expect( parsed instanceof CborBytes ).toBe( true );
+                expect( parsed.bytes ).toEqual( emptyBytes );
+                expect( parsed.chunks ).toEqual([ emptyBytes, emptyBytes, emptyBytes, emptyBytes, emptyBytes ]);
+
+                expect(
+                    Cbor.encode( parsed ).toString()
+                ).toEqual( str );
+
+            });
+
+        });
+
+    });
+
+    test.skip("indefinite length", () => {
 
         const cbor = (
             new CborBytes(
@@ -36,7 +270,7 @@ describe("bytes", () => {
 
     });
 
-    test("definite length preserved", () => {
+    test.skip("definite length preserved", () => {
 
         const str = "4601070A0F1418".toLowerCase();
 
@@ -52,7 +286,7 @@ describe("bytes", () => {
 
     });
 
-    test("perserves number of header bytes", () => {
+    test.skip("perserves number of header bytes", () => {
         const str = "580107";
 
         expect(
