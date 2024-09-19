@@ -1,3 +1,5 @@
+import { isUint8Array } from "@harmoniclabs/uint8array-utils";
+import { isObject } from "@harmoniclabs/obj-utils";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
@@ -19,6 +21,28 @@ export function isRawCborUnsigned( unsign: RawCborUInt ): boolean
     );
 }
 
+export interface CborUIntMetadata {
+    headerAddInfos: number
+    headerFollowingBytes: Uint8Array
+}
+
+export function isCborUIntMetadata( stuff: any ): stuff is CborUIntMetadata
+{
+    return (
+        isObject( stuff ) &&
+        typeof stuff.headerAddInfos === "number" &&
+        isUint8Array( stuff.headerFollowingBytes )
+    );
+}
+
+export function cloneCborUIntMetadata( meta: CborUIntMetadata ): CborUIntMetadata
+{
+    return {
+        headerAddInfos: meta.headerAddInfos,
+        headerFollowingBytes: Uint8Array.prototype.slice.call( meta.headerFollowingBytes )
+    };
+}
+
 export class CborUInt
     implements ToRawObj, Cloneable<CborUInt>
 {
@@ -27,8 +51,17 @@ export class CborUInt
     {
         return this._num;
     }
+
+    private readonly _metadata: CborUIntMetadata | undefined;
+    get metadata(): CborUIntMetadata | undefined
+    {
+        return this._metadata;
+    }
     
-    constructor( uint: number | bigint )
+    constructor( 
+        uint: number | bigint,
+        metadata?: CborUIntMetadata
+    )
     {
         if( typeof uint === "number" )
         {
@@ -42,6 +75,13 @@ export class CborUInt
         );
 
         this._num = uint;
+
+        this._metadata = undefined;
+
+        if( isCborUIntMetadata( metadata ) )
+        {
+            this._metadata = cloneCborUIntMetadata( metadata );
+        }
     }
 
     toRawObj(): RawCborUInt

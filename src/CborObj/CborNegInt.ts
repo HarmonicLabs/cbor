@@ -1,3 +1,5 @@
+import { isUint8Array } from "@harmoniclabs/uint8array-utils";
+import { isObject } from "@harmoniclabs/obj-utils";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
@@ -19,6 +21,28 @@ export function isRawCborNegative( neg: RawCborNegInt ): boolean
     );
 }
 
+export interface CborNegIntMetadata {
+    headerAddInfos: number
+    headerFollowingBytes: Uint8Array
+}
+
+export function isCborNegIntMetadata( stuff: any ): stuff is CborNegIntMetadata
+{
+    return (
+        isObject( stuff ) &&
+        typeof stuff.headerAddInfos === "number" &&
+        isUint8Array( stuff.headerFollowingBytes )
+    );
+}
+
+export function cloneCborNegIntMetadata( meta: CborNegIntMetadata ): CborNegIntMetadata
+{
+    return {
+        headerAddInfos: meta.headerAddInfos,
+        headerFollowingBytes: Uint8Array.prototype.slice.call( meta.headerFollowingBytes )
+    };
+}
+
 export class CborNegInt
     implements ToRawObj, Cloneable<CborNegInt>
 {
@@ -27,8 +51,17 @@ export class CborNegInt
     {
         return this._num;
     }
+
+    private readonly _metadata: CborNegIntMetadata | undefined;
+    get metadata(): CborNegIntMetadata | undefined
+    {
+        return this._metadata;
+    }
     
-    constructor( neg: number | bigint )
+    constructor( 
+        neg: number | bigint,
+        metadata?: CborNegIntMetadata
+    )
     {
         if( typeof neg === "number" ) neg = BigInt( neg );
 
@@ -39,6 +72,13 @@ export class CborNegInt
         );
 
         this._num = neg;
+
+        this._metadata = undefined;
+
+        if( isCborNegIntMetadata( metadata ) )
+        {
+            this._metadata = cloneCborNegIntMetadata( metadata );
+        }
     }
 
     toRawObj(): RawCborNegInt
