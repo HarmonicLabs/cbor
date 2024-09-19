@@ -1,8 +1,8 @@
-import type { CborObj } from "../CborObj";
+import type { CborBytesMetadata, CborObj } from "../CborObj";
 import { CborString } from "../CborString";
 import { isCborObj } from "../CborObj";
 import { isMajorTypeTag, MajorType } from "./Constants";
-import { CborBytes } from "../CborObj/CborBytes";
+import { CborBytes, isCborBytesMetadata } from "../CborObj/CborBytes";
 import { CborText } from "../CborObj/CborText";
 import { CborArray } from "../CborObj/CborArray";
 import { CborMap, CborMapEntry } from "../CborObj/CborMap";
@@ -10,11 +10,10 @@ import { CborTag } from "../CborObj/CborTag";
 import { CborSimple } from "../CborObj/CborSimple";
 import { CborUInt } from "../CborObj/CborUInt";
 import { CborNegInt } from "../CborObj/CborNegInt";
-import { fromHex, fromUtf8, isUint8Array, readBigUInt64BE, readFloat32BE, readFloat64BE, readUint16BE, readUInt16BE, readUInt32BE, readUInt8, toHex, toUtf8, writeBigUInt64BE, writeFloat64BE, writeUInt16BE, writeUInt32BE, writeUInt8 } from "@harmoniclabs/uint8array-utils";
+import { fromHex, fromUtf8, isUint8Array, readBigUInt64BE, readFloat32BE, readFloat64BE, readUInt16BE, readUInt32BE, readUInt8, toHex, toUtf8, writeBigUInt64BE, writeFloat64BE, writeUInt16BE, writeUInt32BE, writeUInt8 } from "@harmoniclabs/uint8array-utils";
 import { BaseCborError } from "../errors/BaseCborError";
 import { assert } from "../utils/assert";
 import { LazyCborObj } from "../LazyCborObj/LazyCborObj";
-import { readCborTypeAndLength } from "../extra";
 import { LazyCborArray } from "../LazyCborObj/LazyCborArray";
 import { LazyCborMap, LazyCborMapEntry } from "../LazyCborObj/LazyCborMap";
 import { LazyCborTag } from "../LazyCborObj/LazyCborTag";
@@ -286,8 +285,21 @@ class CborEncoding
             if( cObj.isDefiniteLength )
             {
                 const bs = cObj.bytes;
-                this.appendTypeAndLength( MajorType.bytes , bs.length );
-                this.appendRawBytes( bs );
+                if( isCborBytesMetadata( cObj.metadata ) )
+                {
+                    const md = cObj.metadata;
+
+                    // can't use `appendTypeAndLength` since it
+                    // will add automaticaly the length of the bytes after the header
+                    this.appendUInt8( (MajorType.bytes << 5) | md.headerAddInfos );
+                    this.appendRawBytes( md.headerFollowingBytes );
+                    this.appendRawBytes( bs );
+                }
+                else
+                {
+                    this.appendTypeAndLength( MajorType.bytes , bs.length );
+                    this.appendRawBytes( bs );
+                }
                 return;
             }
             else {
@@ -605,6 +617,7 @@ export class Cbor
             }
 
             const length = getLength( addInfos );
+            const length_num = Number( length);
 
             if( length < 0 &&
                 ( major < 2 || major > 6 )
@@ -619,7 +632,7 @@ export class Cbor
                 case MajorType.negative: return new CborNegInt( -BigInt( 1 ) -length );
                 case MajorType.bytes:
 
-                    if (length < 0) // data in UPLC v1.*.* serializes as indefinite length
+                    if(length < 0) // data in UPLC v1.*.* serializes as indefinite length
                     {
                         const chunks: Uint8Array[] = [];
 
@@ -647,9 +660,59 @@ export class Cbor
                         ); // indefinte length
                     }
                     
+                    let metadata: CborBytesMetadata | undefined = undefined;
+
+                    if( addInfos === 24 )
+                    {
+                        metadata = {
+                            headerAddInfos: addInfos,
+                            headerFollowingBytes: new Uint8Array([ Number( length ) ]) 
+                        };
+                    }
+                    else if( addInfos === 25 )
+                    {
+                        const lenBytes = new Uint8Array(2);
+                        lenBytes[0] = (length_num >> 8) & 0xff;
+                        lenBytes[1] = length_num & 0xff;
+                        metadata = {
+                            headerAddInfos: addInfos,
+                            headerFollowingBytes: lenBytes
+                        };
+                    }
+                    else if( addInfos === 26 )
+                    {
+                        const lenBytes = new Uint8Array(4);
+                        lenBytes[0] = (length_num >> 24) & 0xff;
+                        lenBytes[1] = (length_num >> 16) & 0xff;
+                        lenBytes[2] = (length_num >> 8) & 0xff;
+                        lenBytes[3] = length_num & 0xff;
+                        metadata = {
+                            headerAddInfos: addInfos,
+                            headerFollowingBytes: lenBytes
+                        };
+                    }
+                    else if( addInfos === 27 )
+                    {
+                        const lenBytes = new Uint8Array(8);
+                        lenBytes[0] = Number( (length >> BigInt(56)) & BigInt(0xff) );
+                        lenBytes[1] = Number( (length >> BigInt(48)) & BigInt(0xff) );
+                        lenBytes[2] = Number( (length >> BigInt(40)) & BigInt(0xff) );
+                        lenBytes[3] = Number( (length >> BigInt(32)) & BigInt(0xff) );
+                        lenBytes[4] = Number( (length >> BigInt(24)) & BigInt(0xff) );
+                        lenBytes[5] = Number( (length >> BigInt(16)) & BigInt(0xff) );
+                        lenBytes[6] = Number( (length >> BigInt(8)) & BigInt(0xff) );
+                        lenBytes[7] = Number( length & BigInt(0xff) );
+                        metadata = {
+                            headerAddInfos: addInfos,
+                            headerFollowingBytes: lenBytes
+                        };
+                    }
+
                     // definite length
                     return new CborBytes(
-                        getBytesOfLength( Number( length ) )
+                        getBytesOfLength( Number( length ) ),
+                        undefined,
+                        metadata
                     );
 
                 case MajorType.text:
