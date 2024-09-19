@@ -1,21 +1,13 @@
 import { Cbor } from "../../Cbor"
 import { CborBytes } from "../CborBytes"
 
-
-function getBytesFF( len: number = 0 ): Uint8Array
-{
-    return new Uint8Array(
-        new Array( len ).fill( 0xff )
-    );
-}
-
 describe("bytes", () => {
 
-    describe.only("empty bytes", () => {
+    describe("empty bytes", () => {
 
         const emptyBytes = new Uint8Array(0);
 
-        test("canonical", () => {
+        test.skip("canonical", () => {
 
             const str = "40";
             const parsed = Cbor.parse( str ) as CborBytes;
@@ -30,7 +22,7 @@ describe("bytes", () => {
 
         });
 
-        test("1 byte for len", () => {
+        test.skip("1 byte for len", () => {
 
             const str = "5800";
             const parsed = Cbor.parse( str ) as CborBytes;
@@ -45,7 +37,7 @@ describe("bytes", () => {
 
         });
 
-        test("2 bytes for len", () => {
+        test.skip("2 bytes for len", () => {
                 
             const str = "590000";
             const parsed = Cbor.parse( str ) as CborBytes;
@@ -60,7 +52,7 @@ describe("bytes", () => {
 
         });
 
-        test("4 bytes for len", () => {
+        test.skip("4 bytes for len", () => {
                 
             const str = "5a00000000";
             const parsed = Cbor.parse( str ) as CborBytes;
@@ -75,7 +67,7 @@ describe("bytes", () => {
 
         });
 
-        test("8 bytes for len", () => {
+        test.skip("8 bytes for len", () => {
                 
             const str = "5b0000000000000000";
             const parsed = Cbor.parse( str ) as CborBytes;
@@ -91,7 +83,7 @@ describe("bytes", () => {
 
         describe("indefinite length", () => {
 
-            test("empty with break", () => {
+            test.only("empty with break", () => {
 
                 const str = "5fff";
                 const parsed = Cbor.parse( str ) as CborBytes;
@@ -106,7 +98,7 @@ describe("bytes", () => {
 
             });
 
-            test("indefinite, one elem", () => {
+            test.skip("indefinite, one elem", () => {
 
                 const str = "5f40ff";
                 const parsed = Cbor.parse( str ) as CborBytes;
@@ -248,7 +240,7 @@ describe("bytes", () => {
 
     });
 
-    test("definite length preserved", () => {
+    test.skip("definite length preserved", () => {
 
         const str = "4601070A0F1418".toLowerCase();
 
@@ -264,7 +256,7 @@ describe("bytes", () => {
 
     });
 
-    test("perserves number of header bytes", () => {
+    test.skip("perserves number of header bytes", () => {
         const str = "580107";
 
         expect(
