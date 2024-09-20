@@ -1,13 +1,13 @@
 
 export enum MajorType {
-    unsigned = 0,   // 000x_xxxx // 
-    negative = 1,   // 001x_xxxx // 
-    bytes    = 2,   // 010x_xxxx // 
-    text     = 3,   // 011x_xxxx // 
-    array    = 4,   // 100x_xxxx // 
-    map      = 5,   // 101x_xxxx // 
-    tag      = 6,   // 110x_xxxx // 
-    float_or_simple    = 7    // 111x_xxxx // 
+    unsigned            = 0,   // 000x_xxxx // 
+    negative            = 1,   // 001x_xxxx // 
+    bytes               = 2,   // 010x_xxxx // 
+    text                = 3,   // 011x_xxxx // 
+    array               = 4,   // 100x_xxxx // 
+    map                 = 5,   // 101x_xxxx // 
+    tag                 = 6,   // 110x_xxxx // 
+    float_or_simple     = 7    // 111x_xxxx // 
 };
 
 Object.freeze( MajorType );
@@ -21,14 +21,14 @@ export function isMajorTypeTag( majorTag: MajorType ): boolean
 }
 
 export enum UInt8MajorType {
-    unsigned = 0b000_00000, 
-    negative = 0b001_00000, 
-    bytes    = 0b010_00000, 
-    text     = 0b011_00000, 
-    array    = 0b100_00000, 
-    map      = 0b101_00000, 
-    tag      = 0b110_00000, 
-    float_or_simple    = 0b111_00000
+    unsigned            = 0b000_00000, 
+    negative            = 0b001_00000, 
+    bytes               = 0b010_00000, 
+    text                = 0b011_00000, 
+    array               = 0b100_00000, 
+    map                 = 0b101_00000, 
+    tag                 = 0b110_00000, 
+    float_or_simple     = 0b111_00000
 }
 
 Object.freeze( UInt8MajorType );

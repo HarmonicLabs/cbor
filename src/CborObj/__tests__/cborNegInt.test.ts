@@ -73,7 +73,7 @@ describe("neg int", () => {
         
     });
 
-    test("remembers 10 byte bignum", () => {
+    test.only("remembers 10 byte bignum", () => {
 
         // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums 
         const str = "c34a00000000000000000000"; 

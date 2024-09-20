@@ -230,25 +230,39 @@ class CborEncoding
                 cObj.num >= BigInt( 0 ),
                 "encoding invalid unsigned integer as CBOR"
             );
+
             const n = cObj.num;
 
-            // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
-            if( n > maxBigInt )
+            if( isCborBytesMetadata( cObj.metadata ) )
             {
-                let hex = n.toString(16);
-                if( (hex.length % 2) === 1 ) hex = "0" + hex;
-                this.appendCborObjEncoding(
-                    new CborTag(
-                        2,
-                        new CborBytes(
-                            fromHex( hex )
-                        )
-                    )
-                );
-                return;
+                // TOCHECK
+                const md = cObj.metadata;
+                this.appendUInt8( (MajorType.unsigned << 5) | md.headerAddInfos );
+                this.appendRawBytes( md.headerFollowingBytes );
             }
-            // else
-            this.appendTypeAndLength( MajorType.unsigned, cObj.num );
+            else
+            {
+                // TODO
+                // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
+                if( n > maxBigInt )
+                {
+                    let hex = n.toString(16);
+                    if( (hex.length % 2) === 1 ) hex = "0" + hex;
+                    this.appendCborObjEncoding(
+                        new CborTag(
+                            2,
+                            new CborBytes(
+                                fromHex( hex )
+                            )
+                        )
+                    );
+                }
+                else
+                {
+                    this.appendTypeAndLength( MajorType.unsigned, n );
+                }
+            }
+
             return;
         }
 
@@ -258,25 +272,40 @@ class CborEncoding
                 cObj.num < BigInt( 0 ),
                 "encoding invalid negative integer as CBOR"
             );
-            let n = cObj.num;
-            // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
-            if( n < minBigInt )
+
+            var n = cObj.num;
+
+            if( isCborBytesMetadata( cObj.metadata ) )
             {
-                n = BigInt(-1) - n;
-                let hex = n.toString(16);
-                if( (hex.length % 2) === 1 ) hex = "0" + hex;
-                this.appendCborObjEncoding(
-                    new CborTag(
-                        3,
-                        new CborBytes(
-                            fromHex( hex )
-                        )
-                    )
-                );
-                return;
+                // TOCHECK
+                const md = cObj.metadata;
+                this.appendUInt8( (MajorType.negative << 5) | md.headerAddInfos );
+                this.appendRawBytes( md.headerFollowingBytes );
             }
-            // else
-            this.appendTypeAndLength( MajorType.negative , -(n + BigInt( 1 )) );
+            else
+            {
+                // TODO
+                // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
+                if( n < minBigInt )
+                {
+                    n = BigInt(-1) - n;
+                    let hex = n.toString(16);
+                    if( (hex.length % 2) === 1 ) hex = "0" + hex;
+                    this.appendCborObjEncoding(
+                        new CborTag(
+                            3,
+                            new CborBytes(
+                                fromHex( hex )
+                            )
+                        )
+                    );
+                }
+                else
+                {
+                    this.appendTypeAndLength( MajorType.negative , -(n + BigInt( 1 )) );
+                }
+            }
+
             return;
         }
 
@@ -303,15 +332,31 @@ class CborEncoding
                 return;
             }
             else {
+                // TODO
                 const chunks = cObj.chunks;
                 const nChunks = chunks.length;
                 this.appendUInt8( (MajorType.bytes << 5) | 31 );
                 let bs: Uint8Array;
+
                 for( let i = 0; i < nChunks; i++ )
                 {
                     bs = chunks[i];
-                    this.appendTypeAndLength( MajorType.bytes , bs.length );
-                    this.appendRawBytes( bs );
+                                        
+                    if( isCborBytesMetadata( cObj.metadata ) )
+                    {
+                        const md = cObj.metadata;
+    
+                        // can't use `appendTypeAndLength` since it
+                        // will add automaticaly the length of the bytes after the header
+                        this.appendUInt8( (MajorType.bytes << 5) | md.headerAddInfos );
+                        this.appendRawBytes( md.headerFollowingBytes );
+                        this.appendRawBytes( bs );
+                    }
+                    else
+                    {
+                        this.appendTypeAndLength( MajorType.bytes , bs.length );
+                        this.appendRawBytes( bs );
+                    }
                 }
                 this.appendUInt8( 0b111_11111 ); // break
                 return;
@@ -603,6 +648,76 @@ export class Cbor
             return toUtf8( getBytesOfLength( l ) );
         }
 
+        function getMetadataFromDefinedAddInfo( addInfos: number, length: bigint, length_num: number ): CborBytesMetadata | undefined
+        {
+            let metadata: CborBytesMetadata | undefined = undefined;
+            var lenBytes: Uint8Array;
+            
+            if( addInfos === 24 )
+            {
+                lenBytes = new Uint8Array([ Number( length ) ]);
+                
+                metadata = {
+                    headerAddInfos: addInfos,
+                    headerFollowingBytes: lenBytes
+                };
+            }
+            else if( addInfos === 25 )
+            {
+                lenBytes = new Uint8Array(2);
+                lenBytes[0] = (length_num >> 8) & 0xff;
+                lenBytes[1] = length_num & 0xff;
+                
+                metadata = {
+                    headerAddInfos: addInfos,
+                    headerFollowingBytes: lenBytes
+                };
+            }
+            else if( addInfos === 26 )
+            {
+                lenBytes = new Uint8Array(4);
+                lenBytes[0] = (length_num >> 24) & 0xff;
+                lenBytes[1] = (length_num >> 16) & 0xff;
+                lenBytes[2] = (length_num >> 8) & 0xff;
+                lenBytes[3] = length_num & 0xff;
+                
+                metadata = {
+                    headerAddInfos: addInfos,
+                    headerFollowingBytes: lenBytes
+                };
+            }
+            else if( addInfos === 27 )
+            {
+                lenBytes = new Uint8Array(8);
+                lenBytes[0] = Number( (length >> BigInt(56)) & BigInt(0xff) );
+                lenBytes[1] = Number( (length >> BigInt(48)) & BigInt(0xff) );
+                lenBytes[2] = Number( (length >> BigInt(40)) & BigInt(0xff) );
+                lenBytes[3] = Number( (length >> BigInt(32)) & BigInt(0xff) );
+                lenBytes[4] = Number( (length >> BigInt(24)) & BigInt(0xff) );
+                lenBytes[5] = Number( (length >> BigInt(16)) & BigInt(0xff) );
+                lenBytes[6] = Number( (length >> BigInt(8)) & BigInt(0xff) );
+                lenBytes[7] = Number( length & BigInt(0xff) );
+                
+                metadata = {
+                    headerAddInfos: addInfos,
+                    headerFollowingBytes: lenBytes
+                };
+            }
+
+            return metadata;
+        }
+
+        // DANGER ZONE
+        // function appendToUint8Array( arr: Uint8Array, toAppend: Uint8Array ): Uint8Array
+        // {
+        //     const newArr = new Uint8Array( arr.length + toAppend.length );
+
+        //     newArr.set( arr );
+        //     newArr.set( toAppend, arr.length );
+            
+        //     return newArr;
+        // }
+
         function parseCborObj(): CborObj
         {
             const headerByte = getUInt8();
@@ -617,7 +732,7 @@ export class Cbor
             }
 
             const length = getLength( addInfos );
-            const length_num = Number( length);
+            const length_num = Number( length );
 
             if( length < 0 &&
                 ( major < 2 || major > 6 )
@@ -626,24 +741,36 @@ export class Cbor
                 throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
             }
 
+            let metadata: CborBytesMetadata | undefined = undefined;
+
             switch( major )
             {
-                case MajorType.unsigned: return new CborUInt( length );
-                case MajorType.negative: return new CborNegInt( -BigInt( 1 ) -length );
+                case MajorType.unsigned:
+                    metadata = getMetadataFromDefinedAddInfo( addInfos, length, length_num );
+                    return new CborUInt( length, metadata );
+                
+                case MajorType.negative:
+                    metadata = getMetadataFromDefinedAddInfo( addInfos, length, length_num );
+                    return new CborNegInt( -BigInt( 1 ) -length, metadata );
+                
                 case MajorType.bytes:
 
-                    if(length < 0) // data in UPLC v1.*.* serializes as indefinite length
+                    // TODO
+                    if( length < 0 ) // data in UPLC v1.*.* serializes as indefinite length
                     {
                         const chunks: Uint8Array[] = [];
 
+                        // var metadataFollowingBytes = new Uint8Array(0);
+
                         let elementLength: bigint;
-                        while ( (elementLength = getIndefiniteElemLengthOfType( major ) ) >= 0)
+                        while( ( elementLength = getIndefiniteElemLengthOfType( major ) ) >= 0 )
                         {
-                            chunks.push(
-                                getBytesOfLength( // increments offset
-                                    Number( elementLength )
-                                )
-                            );
+                            let bytesOfLength = getBytesOfLength( Number( elementLength ) );
+                            
+                            // DANGER ZONE
+                            // metadataFollowingBytes = appendToUint8Array( metadataFollowingBytes, bytesOfLength );
+                            
+                            chunks.push( bytesOfLength );  // increments offset
                         }
 
                         if( chunks.length === 0 )
@@ -654,59 +781,21 @@ export class Cbor
 
                         const [ fst, ...rest ] = chunks;
 
+                        // DANGER ZONE
+                        // metadata = {
+                        //     headerAddInfos: 31,
+                        //     headerFollowingBytes: metadataFollowingBytes
+                        // };
+                        
+
                         return new CborBytes(
                             fst,
-                            rest
+                            rest,
+                            // metadata
                         ); // indefinte length
                     }
                     
-                    let metadata: CborBytesMetadata | undefined = undefined;
-
-                    if( addInfos === 24 )
-                    {
-                        metadata = {
-                            headerAddInfos: addInfos,
-                            headerFollowingBytes: new Uint8Array([ Number( length ) ]) 
-                        };
-                    }
-                    else if( addInfos === 25 )
-                    {
-                        const lenBytes = new Uint8Array(2);
-                        lenBytes[0] = (length_num >> 8) & 0xff;
-                        lenBytes[1] = length_num & 0xff;
-                        metadata = {
-                            headerAddInfos: addInfos,
-                            headerFollowingBytes: lenBytes
-                        };
-                    }
-                    else if( addInfos === 26 )
-                    {
-                        const lenBytes = new Uint8Array(4);
-                        lenBytes[0] = (length_num >> 24) & 0xff;
-                        lenBytes[1] = (length_num >> 16) & 0xff;
-                        lenBytes[2] = (length_num >> 8) & 0xff;
-                        lenBytes[3] = length_num & 0xff;
-                        metadata = {
-                            headerAddInfos: addInfos,
-                            headerFollowingBytes: lenBytes
-                        };
-                    }
-                    else if( addInfos === 27 )
-                    {
-                        const lenBytes = new Uint8Array(8);
-                        lenBytes[0] = Number( (length >> BigInt(56)) & BigInt(0xff) );
-                        lenBytes[1] = Number( (length >> BigInt(48)) & BigInt(0xff) );
-                        lenBytes[2] = Number( (length >> BigInt(40)) & BigInt(0xff) );
-                        lenBytes[3] = Number( (length >> BigInt(32)) & BigInt(0xff) );
-                        lenBytes[4] = Number( (length >> BigInt(24)) & BigInt(0xff) );
-                        lenBytes[5] = Number( (length >> BigInt(16)) & BigInt(0xff) );
-                        lenBytes[6] = Number( (length >> BigInt(8)) & BigInt(0xff) );
-                        lenBytes[7] = Number( length & BigInt(0xff) );
-                        metadata = {
-                            headerAddInfos: addInfos,
-                            headerFollowingBytes: lenBytes
-                        };
-                    }
+                    metadata = getMetadataFromDefinedAddInfo( addInfos, length, length_num );        
 
                     // definite length
                     return new CborBytes(

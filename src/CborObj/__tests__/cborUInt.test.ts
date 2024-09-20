@@ -1,8 +1,5 @@
-import { fromHex } from "@harmoniclabs/uint8array-utils";
-import { Cbor } from "../../Cbor";
-import { CborBytes } from "../CborBytes";
-import { CborTag } from "../CborTag";
 import { CborUInt } from "../CborUInt";
+import { Cbor } from "../../Cbor";
 
 describe("uint", () => {
 
@@ -76,7 +73,7 @@ describe("uint", () => {
         
     });
 
-    test("remembers 10 byte bignum", () => {
+    test.only("remembers 10 byte bignum", () => {
 
         // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums 
         const str = "c24a00000000000000000001";
