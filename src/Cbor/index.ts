@@ -235,32 +235,39 @@ class CborEncoding
 
             if( isCborBytesMetadata( cObj.metadata ) )
             {
-                // TOCHECK
                 const md = cObj.metadata;
-                this.appendUInt8( (MajorType.unsigned << 5) | md.headerAddInfos );
-                this.appendRawBytes( md.headerFollowingBytes );
-            }
-            else
-            {
-                // TODO
-                // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
+                                
                 if( n > maxBigInt )
                 {
                     let hex = n.toString(16);
                     if( (hex.length % 2) === 1 ) hex = "0" + hex;
+
                     this.appendCborObjEncoding(
                         new CborTag(
                             2,
                             new CborBytes(
-                                fromHex( hex )
-                            )
+                                new Uint8Array([]),
+                                [ fromHex( hex ) ],
+                                {
+                                    headerAddInfos: 31,
+                                    headerFollowingBytes: new Uint8Array([])
+                                }
+                            ),
+                            {
+                                containingTag: MajorType.bytes
+                            }
                         )
                     );
                 }
                 else
                 {
-                    this.appendTypeAndLength( MajorType.unsigned, n );
-                }
+                    this.appendUInt8( (MajorType.unsigned << 5) | md.headerAddInfos );
+                    this.appendRawBytes( md.headerFollowingBytes );
+                }                
+            }
+            else
+            {
+                this.appendTypeAndLength( MajorType.unsigned, n );
             }
 
             return;
@@ -331,7 +338,8 @@ class CborEncoding
                 }
                 return;
             }
-            else {
+            else 
+            {
                 // TODO
                 const chunks = cObj.chunks;
                 const nChunks = chunks.length;
@@ -707,17 +715,6 @@ export class Cbor
             return metadata;
         }
 
-        // DANGER ZONE
-        // function appendToUint8Array( arr: Uint8Array, toAppend: Uint8Array ): Uint8Array
-        // {
-        //     const newArr = new Uint8Array( arr.length + toAppend.length );
-
-        //     newArr.set( arr );
-        //     newArr.set( toAppend, arr.length );
-            
-        //     return newArr;
-        // }
-
         function parseCborObj(): CborObj
         {
             const headerByte = getUInt8();
@@ -782,16 +779,16 @@ export class Cbor
                         const [ fst, ...rest ] = chunks;
 
                         // DANGER ZONE
-                        // metadata = {
-                        //     headerAddInfos: 31,
-                        //     headerFollowingBytes: metadataFollowingBytes
-                        // };
+                        metadata = {
+                            headerAddInfos: 31,
+                            headerFollowingBytes: metadataFollowingBytes
+                        };
                         
 
                         return new CborBytes(
                             fst,
                             rest,
-                            // metadata
+                            metadata
                         ); // indefinte length
                     }
                     

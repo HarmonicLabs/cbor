@@ -3,6 +3,7 @@ import { ToRawObj } from "./interfaces/ToRawObj"
 import { Cloneable } from "../utils/Cloneable";
 import { canBeUInteger } from "../utils/ints";
 import { assert } from "../utils/assert";
+import { isObject } from "@harmoniclabs/obj-utils";
 
 export type RawCborTag = {
     tag: number | bigint,
@@ -23,6 +24,25 @@ export function isRawCborTag( t: RawCborTag ): boolean
     );
 }
 
+export interface CborTagMetadata {
+    containingTag: number
+}
+
+export function isCborUIntMetadata( stuff: any ): stuff is CborTagMetadata
+{
+    return (
+        isObject( stuff ) &&
+        typeof stuff.containingTag === "number"
+    );
+}
+
+export function cloneCborUIntMetadata( meta: CborTagMetadata ): CborTagMetadata
+{
+    return {
+        containingTag: meta.containingTag
+    };
+}
+
 export class CborTag
     implements ToRawObj, Cloneable<CborTag>
 {
@@ -38,7 +58,13 @@ export class CborTag
         return this._data
     }
 
-    constructor( tag: number | bigint , data: CborObj )
+    private readonly _metadata: CborTagMetadata | undefined
+    get metadata(): CborTagMetadata | undefined
+    {
+        return this._metadata
+    }
+
+    constructor( tag: number | bigint , data: CborObj, metadata?: CborTagMetadata )
     {
         if( typeof tag === "number" ) tag = BigInt( tag );
 
@@ -50,6 +76,7 @@ export class CborTag
 
         this._tag = tag;
         this._data = data;
+        this._metadata = metadata;
     }
 
     toRawObj(): RawCborTag
