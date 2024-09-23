@@ -3,6 +3,7 @@ import { isObject } from "@harmoniclabs/obj-utils";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
+import { CborBytes } from "./CborBytes";
 
 export type RawCborUInt = {
     uint: bigint
@@ -21,12 +22,12 @@ export function isRawCborUnsigned( unsign: RawCborUInt ): boolean
     );
 }
 
-export interface CborUIntMetadata {
+export interface CborUIntMetaCaseFinite {
     headerAddInfos: number
     headerFollowingBytes: Uint8Array
 }
 
-export function isCborUIntMetadata( stuff: any ): stuff is CborUIntMetadata
+export function isCborUIntMetaCaseFinite( stuff: any ): stuff is CborUIntMetaCaseFinite
 {
     return (
         isObject( stuff ) &&
@@ -35,12 +36,41 @@ export function isCborUIntMetadata( stuff: any ): stuff is CborUIntMetadata
     );
 }
 
-export function cloneCborUIntMetadata( meta: CborUIntMetadata ): CborUIntMetadata
+export function cloneCborUIntMetaCaseFinite( meta: CborUIntMetaCaseFinite ): CborUIntMetaCaseFinite
 {
     return {
         headerAddInfos: meta.headerAddInfos,
         headerFollowingBytes: Uint8Array.prototype.slice.call( meta.headerFollowingBytes )
     };
+}
+
+export interface CborUIntMetaCaseBigNum {
+    wrappedBytes: CborBytes
+}
+
+export type CborUIntMeta
+    = {
+        isBigNum: false,
+        meta: CborUIntMetaCaseFinite
+    } | {
+        isBigNum: true,
+        meta: CborUIntMetaCaseBigNum
+    }
+
+export function isCborUIntMeta( stuff: any ): stuff is CborUIntMeta
+{
+    return (
+        isObject( stuff ) &&
+        (
+            ( stuff.isBigNum === true && isCborUIntMetaCaseBigNum( stuff.meta ) ) ||
+            ( stuff.isBigNum === false && isCborUIntMetaCaseFinite( stuff.meta ) )
+        )
+    )
+}
+
+export function cloneCborUIntMeta( meta: CborUIntMeta ): CborUIntMeta
+{
+    return TODO;
 }
 
 export class CborUInt
@@ -52,15 +82,15 @@ export class CborUInt
         return this._num;
     }
 
-    private readonly _metadata: CborUIntMetadata | undefined;
-    get metadata(): CborUIntMetadata | undefined
+    private readonly _metadata: CborUIntMeta | undefined;
+    get metadata(): CborUIntMeta | undefined
     {
         return this._metadata;
     }
     
     constructor( 
         uint: number | bigint,
-        metadata?: CborUIntMetadata
+        metadata?: CborUIntMeta
     )
     {
         if( typeof uint === "number" )
@@ -78,9 +108,9 @@ export class CborUInt
 
         this._metadata = undefined;
 
-        if( isCborUIntMetadata( metadata ) )
+        if( isCborUIntMeta( metadata ) )
         {
-            this._metadata = cloneCborUIntMetadata( metadata );
+            this._metadata = cloneCborUIntMeta( metadata );
         }
     }
 

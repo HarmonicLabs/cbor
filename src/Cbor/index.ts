@@ -744,7 +744,13 @@ export class Cbor
             {
                 case MajorType.unsigned:
                     metadata = getMetadataFromDefinedAddInfo( addInfos, length, length_num );
-                    return new CborUInt( length, metadata );
+                    return new CborUInt( length, {
+                        isBigNum: false,
+                        meta: {
+                            headerAddInfos: addInfos,
+                            headerFollowingBytes: TODO
+                        }
+                    } );
                 
                 case MajorType.negative:
                     metadata = getMetadataFromDefinedAddInfo( addInfos, length, length_num );
@@ -880,7 +886,13 @@ export class Cbor
                             BigInt(
                                 "0x" +
                                 toHex( data.bytes )
-                            )
+                            ),
+                            {
+                                isBigNum: true,
+                                meta: {
+                                    wrappedBytes: data
+                                }
+                            }
                         );
                     }
                     // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
@@ -892,7 +904,8 @@ export class Cbor
                                     "0x" +
                                     toHex( data.bytes )
                                 ) + BigInt( 1 )
-                            )
+                            ),
+                            TODO
                         );
                     }
                     // else just tag
