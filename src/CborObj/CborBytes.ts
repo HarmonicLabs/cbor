@@ -21,6 +21,7 @@ export function isRawCborBytes( b: RawCborBytes ): boolean
 }
 
 export interface CborBytesMetadata {
+    majorType: number
     headerAddInfos: number
     headerFollowingBytes: Uint8Array
 }
@@ -28,8 +29,9 @@ export interface CborBytesMetadata {
 export function isCborBytesMetadata( stuff: any ): stuff is CborBytesMetadata
 {
     return (
-        isObject( stuff ) &&
-        typeof stuff.headerAddInfos === "number" &&
+        isObject( stuff )                           &&
+        typeof stuff.majorType === "number"         &&
+        typeof stuff.headerAddInfos === "number"    &&
         isUint8Array( stuff.headerFollowingBytes )
     );
 }
@@ -38,7 +40,8 @@ export function cloneCborBytesMetadata( meta: CborBytesMetadata ): CborBytesMeta
 {
     return {
         headerAddInfos: meta.headerAddInfos,
-        headerFollowingBytes: Uint8Array.prototype.slice.call( meta.headerFollowingBytes )
+        headerFollowingBytes: Uint8Array.prototype.slice.call( meta.headerFollowingBytes ),
+        majorType: meta.majorType
     };
 }
 

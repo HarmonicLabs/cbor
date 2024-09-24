@@ -1,23 +1,23 @@
-import type { CborBytesMetadata, CborObj } from "../CborObj";
-import { CborString } from "../CborString";
-import { isCborObj } from "../CborObj";
-import { isMajorTypeTag, MajorType } from "./Constants";
-import { CborBytes, isCborBytesMetadata } from "../CborObj/CborBytes";
-import { CborText } from "../CborObj/CborText";
-import { CborArray } from "../CborObj/CborArray";
-import { CborMap, CborMapEntry } from "../CborObj/CborMap";
-import { CborTag } from "../CborObj/CborTag";
-import { CborSimple } from "../CborObj/CborSimple";
-import { CborUInt } from "../CborObj/CborUInt";
-import { CborNegInt } from "../CborObj/CborNegInt";
 import { fromHex, fromUtf8, isUint8Array, readBigUInt64BE, readFloat32BE, readFloat64BE, readUInt16BE, readUInt32BE, readUInt8, toHex, toUtf8, writeBigUInt64BE, writeFloat64BE, writeUInt16BE, writeUInt32BE, writeUInt8 } from "@harmoniclabs/uint8array-utils";
-import { BaseCborError } from "../errors/BaseCborError";
-import { assert } from "../utils/assert";
-import { LazyCborObj } from "../LazyCborObj/LazyCborObj";
-import { LazyCborArray } from "../LazyCborObj/LazyCborArray";
+import type { CborBytesMetadata, CborNegIntMetaCaseFinite, CborObj, CborUIntMetaCaseFinite } from "../CborObj";
 import { LazyCborMap, LazyCborMapEntry } from "../LazyCborObj/LazyCborMap";
+import { CborBytes, isCborBytesMetadata } from "../CborObj/CborBytes";
+import { LazyCborArray } from "../LazyCborObj/LazyCborArray";
+import { CborMap, CborMapEntry } from "../CborObj/CborMap";
+import { isMajorTypeTag, MajorType } from "./Constants";
+import { LazyCborObj } from "../LazyCborObj/LazyCborObj";
 import { LazyCborTag } from "../LazyCborObj/LazyCborTag";
+import { BaseCborError } from "../errors/BaseCborError";
+import { CborSimple } from "../CborObj/CborSimple";
+import { CborNegInt } from "../CborObj/CborNegInt";
+import { CborArray } from "../CborObj/CborArray";
+import { CborText } from "../CborObj/CborText";
+import { CborUInt, isCborUIntMeta } from "../CborObj/CborUInt";
+import { CborTag } from "../CborObj/CborTag";
+import { CborString } from "../CborString";
 import { CborParseError } from "../errors";
+import { assert } from "../utils/assert";
+import { isCborObj } from "../CborObj";
 
 /** Lowest value that can be encoded directly as (negative) integer */
 const minBigInt = BigInt("-18446744073709551616"); // -(2n ** 64n)
@@ -233,12 +233,13 @@ class CborEncoding
 
             const n = cObj.num;
 
-            if( isCborBytesMetadata( cObj.metadata ) )
+            if( isCborUIntMeta( cObj.metadata ) )
             {
                 const md = cObj.metadata;
                                 
-                if( n > maxBigInt )
+                if( md.isBigNum )
                 {
+                    //TODO
                     let hex = n.toString(16);
                     if( (hex.length % 2) === 1 ) hex = "0" + hex;
 
@@ -246,23 +247,21 @@ class CborEncoding
                         new CborTag(
                             2,
                             new CborBytes(
-                                new Uint8Array([]),
-                                [ fromHex( hex ) ],
+                                fromHex( hex ),
+                                [],
                                 {
-                                    headerAddInfos: 31,
+                                    majorType: MajorType.unsigned,
+                                    headerAddInfos: hex.length / 2,
                                     headerFollowingBytes: new Uint8Array([])
                                 }
-                            ),
-                            {
-                                containingTag: MajorType.bytes
-                            }
+                            )
                         )
                     );
                 }
                 else
                 {
-                    this.appendUInt8( (MajorType.unsigned << 5) | md.headerAddInfos );
-                    this.appendRawBytes( md.headerFollowingBytes );
+                    this.appendUInt8( ( MajorType.unsigned << 5 ) | md.meta.headerAddInfos );
+                    this.appendRawBytes( md.meta.headerFollowingBytes );
                 }                
             }
             else
@@ -327,7 +326,7 @@ class CborEncoding
 
                     // can't use `appendTypeAndLength` since it
                     // will add automaticaly the length of the bytes after the header
-                    this.appendUInt8( (MajorType.bytes << 5) | md.headerAddInfos );
+                    this.appendUInt8( ( md.majorType << 5 ) | md.headerAddInfos );
                     this.appendRawBytes( md.headerFollowingBytes );
                     this.appendRawBytes( bs );
                 }
@@ -343,7 +342,7 @@ class CborEncoding
                 // TODO
                 const chunks = cObj.chunks;
                 const nChunks = chunks.length;
-                this.appendUInt8( (MajorType.bytes << 5) | 31 );
+                this.appendUInt8( ( MajorType.bytes << 5 ) | 31 );
                 let bs: Uint8Array;
 
                 for( let i = 0; i < nChunks; i++ )
@@ -356,7 +355,7 @@ class CborEncoding
     
                         // can't use `appendTypeAndLength` since it
                         // will add automaticaly the length of the bytes after the header
-                        this.appendUInt8( (MajorType.bytes << 5) | md.headerAddInfos );
+                        this.appendUInt8( ( md.majorType << 5) | md.headerAddInfos );
                         this.appendRawBytes( md.headerFollowingBytes );
                         this.appendRawBytes( bs );
                     }
@@ -656,16 +655,18 @@ export class Cbor
             return toUtf8( getBytesOfLength( l ) );
         }
 
-        function getMetadataFromDefinedAddInfo( addInfos: number, length: bigint, length_num: number ): CborBytesMetadata | undefined
+        function getMetadataFromAddInfo( addInfos: number, length: bigint, length_num: number ): 
+            CborUIntMetaCaseFinite      |
+            CborNegIntMetaCaseFinite    |
+            CborBytesMetadata
         {
-            let metadata: CborBytesMetadata | undefined = undefined;
             var lenBytes: Uint8Array;
             
             if( addInfos === 24 )
             {
                 lenBytes = new Uint8Array([ Number( length ) ]);
                 
-                metadata = {
+                return {
                     headerAddInfos: addInfos,
                     headerFollowingBytes: lenBytes
                 };
@@ -676,7 +677,7 @@ export class Cbor
                 lenBytes[0] = (length_num >> 8) & 0xff;
                 lenBytes[1] = length_num & 0xff;
                 
-                metadata = {
+                return {
                     headerAddInfos: addInfos,
                     headerFollowingBytes: lenBytes
                 };
@@ -689,12 +690,12 @@ export class Cbor
                 lenBytes[2] = (length_num >> 8) & 0xff;
                 lenBytes[3] = length_num & 0xff;
                 
-                metadata = {
+                return {
                     headerAddInfos: addInfos,
                     headerFollowingBytes: lenBytes
                 };
             }
-            else if( addInfos === 27 )
+            else // then must be addInfos === 27
             {
                 lenBytes = new Uint8Array(8);
                 lenBytes[0] = Number( (length >> BigInt(56)) & BigInt(0xff) );
@@ -706,13 +707,11 @@ export class Cbor
                 lenBytes[6] = Number( (length >> BigInt(8)) & BigInt(0xff) );
                 lenBytes[7] = Number( length & BigInt(0xff) );
                 
-                metadata = {
+                return {
                     headerAddInfos: addInfos,
                     headerFollowingBytes: lenBytes
                 };
             }
-
-            return metadata;
         }
 
         function parseCborObj(): CborObj
@@ -738,41 +737,31 @@ export class Cbor
                 throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
             }
 
-            let metadata: CborBytesMetadata | undefined = undefined;
-
             switch( major )
             {
                 case MajorType.unsigned:
-                    metadata = getMetadataFromDefinedAddInfo( addInfos, length, length_num );
                     return new CborUInt( length, {
                         isBigNum: false,
-                        meta: {
-                            headerAddInfos: addInfos,
-                            headerFollowingBytes: TODO
-                        }
+                        meta: getMetadataFromAddInfo( addInfos, length, length_num )
                     } );
                 
                 case MajorType.negative:
-                    metadata = getMetadataFromDefinedAddInfo( addInfos, length, length_num );
-                    return new CborNegInt( -BigInt( 1 ) -length, metadata );
+                    return new CborNegInt( -BigInt( 1 ) -length, {
+                        isBigNum: false,
+                        meta: getMetadataFromAddInfo( addInfos, length, length_num )
+                    }  );
                 
                 case MajorType.bytes:
-
                     // TODO
                     if( length < 0 ) // data in UPLC v1.*.* serializes as indefinite length
                     {
                         const chunks: Uint8Array[] = [];
-
-                        // var metadataFollowingBytes = new Uint8Array(0);
-
                         let elementLength: bigint;
+                        
                         while( ( elementLength = getIndefiniteElemLengthOfType( major ) ) >= 0 )
                         {
                             let bytesOfLength = getBytesOfLength( Number( elementLength ) );
-                            
-                            // DANGER ZONE
-                            // metadataFollowingBytes = appendToUint8Array( metadataFollowingBytes, bytesOfLength );
-                            
+                                                        
                             chunks.push( bytesOfLength );  // increments offset
                         }
 
@@ -784,23 +773,16 @@ export class Cbor
 
                         const [ fst, ...rest ] = chunks;
 
-                        // DANGER ZONE
-                        metadata = {
-                            headerAddInfos: 31,
-                            headerFollowingBytes: metadataFollowingBytes
-                        };
-                        
-
                         return new CborBytes(
                             fst,
-                            rest,
-                            metadata
+                            rest
                         ); // indefinte length
                     }
                     
-                    metadata = getMetadataFromDefinedAddInfo( addInfos, length, length_num );        
-
                     // definite length
+                    var metadata = getMetadataFromAddInfo( addInfos, length, length_num ) as CborBytesMetadata;
+                    metadata.majorType = MajorType.bytes;
+
                     return new CborBytes(
                         getBytesOfLength( Number( length ) ),
                         undefined,
@@ -879,6 +861,7 @@ export class Cbor
                 case MajorType.tag: {
                     const l = Number( length );
                     const data = parseCborObj();
+
                     // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
                     if( l === 2 && data instanceof CborBytes )
                     {
@@ -905,12 +888,18 @@ export class Cbor
                                     toHex( data.bytes )
                                 ) + BigInt( 1 )
                             ),
-                            TODO
+                            {
+                                isBigNum: true,
+                                meta: {
+                                    wrappedBytes: data
+                                }
+                            }
                         );
                     }
                     // else just tag
                     return new CborTag( l, data );
                 }
+
                 case MajorType.float_or_simple:
                     
                     const nLen = Number( length );

@@ -4,6 +4,7 @@ import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
 import { CborBytes } from "./CborBytes";
+import { isCborObj } from ".";
 
 export type RawCborUInt = {
     uint: bigint
@@ -48,21 +49,36 @@ export interface CborUIntMetaCaseBigNum {
     wrappedBytes: CborBytes
 }
 
-export type CborUIntMeta
-    = {
+export function isCborUIntMetaCaseBigNum( stuff: any ): stuff is CborUIntMetaCaseBigNum
+{
+    return (
+        isObject( stuff ) &&
+        isCborObj( stuff.wrappedBytes )
+    );
+}
+
+export function cloneCborUIntMetaCaseBigNum( meta: CborUIntMetaCaseBigNum ): CborUIntMetaCaseBigNum
+{
+    return {
+        wrappedBytes: meta.wrappedBytes
+    };
+}
+
+export type CborUIntMeta = 
+    {
         isBigNum: false,
         meta: CborUIntMetaCaseFinite
     } | {
         isBigNum: true,
         meta: CborUIntMetaCaseBigNum
-    }
+    };
 
 export function isCborUIntMeta( stuff: any ): stuff is CborUIntMeta
 {
     return (
         isObject( stuff ) &&
         (
-            ( stuff.isBigNum === true && isCborUIntMetaCaseBigNum( stuff.meta ) ) ||
+            ( stuff.isBigNum === true && isCborUIntMetaCaseBigNum( stuff.meta ) )   ||
             ( stuff.isBigNum === false && isCborUIntMetaCaseFinite( stuff.meta ) )
         )
     )
@@ -70,7 +86,20 @@ export function isCborUIntMeta( stuff: any ): stuff is CborUIntMeta
 
 export function cloneCborUIntMeta( meta: CborUIntMeta ): CborUIntMeta
 {
-    return TODO;
+    if( meta.isBigNum )
+    {
+        return {
+            isBigNum: true,
+            meta: cloneCborUIntMetaCaseBigNum( meta.meta )
+        };
+    }
+    else
+    {
+        return {
+            isBigNum: false,
+            meta: cloneCborUIntMetaCaseFinite( meta.meta )
+        };
+    }
 }
 
 export class CborUInt
@@ -93,10 +122,7 @@ export class CborUInt
         metadata?: CborUIntMeta
     )
     {
-        if( typeof uint === "number" )
-        {
-            uint = BigInt( uint );
-        }
+        uint = typeof uint === "number" ? BigInt( uint ) : uint;
 
         assert(
             typeof uint === "bigint" &&
@@ -106,12 +132,7 @@ export class CborUInt
 
         this._num = uint;
 
-        this._metadata = undefined;
-
-        if( isCborUIntMeta( metadata ) )
-        {
-            this._metadata = cloneCborUIntMeta( metadata );
-        }
+        this._metadata = isCborUIntMeta( metadata ) ? cloneCborUIntMeta( metadata ) : undefined;
     }
 
     toRawObj(): RawCborUInt
