@@ -279,7 +279,7 @@ class CborEncoding
                 "encoding invalid negative integer as CBOR"
             );
 
-            var n = cObj.num;
+            let n = cObj.num;
 
             if( isCborBytesMetadata( cObj.metadata ) )
             {
@@ -655,65 +655,6 @@ export class Cbor
             return toUtf8( getBytesOfLength( l ) );
         }
 
-        function getMetadataFromAddInfo( addInfos: number, length: bigint, length_num: number ): 
-            CborUIntMetaCaseFinite      |
-            CborNegIntMetaCaseFinite    |
-            CborBytesMetadata
-        {
-            var lenBytes: Uint8Array;
-            
-            if( addInfos === 24 )
-            {
-                lenBytes = new Uint8Array([ Number( length ) ]);
-                
-                return {
-                    headerAddInfos: addInfos,
-                    headerFollowingBytes: lenBytes
-                };
-            }
-            else if( addInfos === 25 )
-            {
-                lenBytes = new Uint8Array(2);
-                lenBytes[0] = (length_num >> 8) & 0xff;
-                lenBytes[1] = length_num & 0xff;
-                
-                return {
-                    headerAddInfos: addInfos,
-                    headerFollowingBytes: lenBytes
-                };
-            }
-            else if( addInfos === 26 )
-            {
-                lenBytes = new Uint8Array(4);
-                lenBytes[0] = (length_num >> 24) & 0xff;
-                lenBytes[1] = (length_num >> 16) & 0xff;
-                lenBytes[2] = (length_num >> 8) & 0xff;
-                lenBytes[3] = length_num & 0xff;
-                
-                return {
-                    headerAddInfos: addInfos,
-                    headerFollowingBytes: lenBytes
-                };
-            }
-            else // then must be addInfos === 27
-            {
-                lenBytes = new Uint8Array(8);
-                lenBytes[0] = Number( (length >> BigInt(56)) & BigInt(0xff) );
-                lenBytes[1] = Number( (length >> BigInt(48)) & BigInt(0xff) );
-                lenBytes[2] = Number( (length >> BigInt(40)) & BigInt(0xff) );
-                lenBytes[3] = Number( (length >> BigInt(32)) & BigInt(0xff) );
-                lenBytes[4] = Number( (length >> BigInt(24)) & BigInt(0xff) );
-                lenBytes[5] = Number( (length >> BigInt(16)) & BigInt(0xff) );
-                lenBytes[6] = Number( (length >> BigInt(8)) & BigInt(0xff) );
-                lenBytes[7] = Number( length & BigInt(0xff) );
-                
-                return {
-                    headerAddInfos: addInfos,
-                    headerFollowingBytes: lenBytes
-                };
-            }
-        }
-
         function parseCborObj(): CborObj
         {
             const headerByte = getUInt8();
@@ -780,7 +721,7 @@ export class Cbor
                     }
                     
                     // definite length
-                    var metadata = getMetadataFromAddInfo( addInfos, length, length_num ) as CborBytesMetadata;
+                    let metadata = getMetadataFromAddInfo( addInfos, length, length_num ) as CborBytesMetadata;
                     metadata.majorType = MajorType.bytes;
 
                     return new CborBytes(
@@ -1415,4 +1356,70 @@ export class Cbor
         return { parsed: parseCborObj(), offset };
     }
 
+}
+
+function getMetadataFromAddInfo( addInfos: number, length: bigint, length_num: number ): 
+            CborUIntMetaCaseFinite      | 
+    CborNegIntMetaCaseFinite    |
+    CborBytesMetadata
+{
+    let lenBytes: Uint8Array;
+
+    if( addInfos < 24 )
+    {
+        return {
+            headerAddInfos: addInfos,
+            headerFollowingBytes: new Uint8Array(0)
+        };
+    }
+    else if( addInfos === 24 )
+    {
+        lenBytes = new Uint8Array([ Number( length ) ]);
+        
+        return {
+            headerAddInfos: addInfos,
+            headerFollowingBytes: lenBytes
+        };
+    }
+    else if( addInfos === 25 )
+    {
+        lenBytes = new Uint8Array(2);
+        lenBytes[0] = (length_num >> 8) & 0xff;
+        lenBytes[1] = length_num & 0xff;
+        
+        return {
+            headerAddInfos: addInfos,
+            headerFollowingBytes: lenBytes
+        };
+    }
+    else if( addInfos === 26 )
+    {
+        lenBytes = new Uint8Array(4);
+        lenBytes[0] = (length_num >> 24) & 0xff;
+        lenBytes[1] = (length_num >> 16) & 0xff;
+        lenBytes[2] = (length_num >> 8) & 0xff;
+        lenBytes[3] = length_num & 0xff;
+        
+        return {
+            headerAddInfos: addInfos,
+            headerFollowingBytes: lenBytes
+        };
+    }
+    else // then must be addInfos === 27
+    {
+        lenBytes = new Uint8Array(8);
+        lenBytes[0] = Number( (length >> BigInt(56)) & BigInt(0xff) );
+        lenBytes[1] = Number( (length >> BigInt(48)) & BigInt(0xff) );
+        lenBytes[2] = Number( (length >> BigInt(40)) & BigInt(0xff) );
+        lenBytes[3] = Number( (length >> BigInt(32)) & BigInt(0xff) );
+        lenBytes[4] = Number( (length >> BigInt(24)) & BigInt(0xff) );
+        lenBytes[5] = Number( (length >> BigInt(16)) & BigInt(0xff) );
+        lenBytes[6] = Number( (length >> BigInt(8)) & BigInt(0xff) );
+        lenBytes[7] = Number( length & BigInt(0xff) );
+        
+        return {
+            headerAddInfos: addInfos,
+            headerFollowingBytes: lenBytes
+        };
+    }
 }

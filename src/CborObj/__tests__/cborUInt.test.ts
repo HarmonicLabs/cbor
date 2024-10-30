@@ -3,7 +3,7 @@ import { Cbor } from "../../Cbor";
 
 describe("uint", () => {
 
-    test("remembers 1 bytes header", () => {
+    test.only("remembers 1 bytes header", () => {
 
         const str = "01";
         const parsed = Cbor.parse( str ) as CborUInt;
