@@ -35,19 +35,16 @@ export type CborObj
     | CborSimple;
 
 export function isCborObj<T extends object>( cborObj: T ): cborObj is (T & CborObj)
-{
-    const proto = Object.getPrototypeOf( cborObj );
-    
-    // only strict instances
+{    
     return (
-        proto === CborNegInt.prototype ||
-        proto === CborUInt.prototype ||
-        proto === CborBytes.prototype       ||
-        proto === CborText.prototype        ||
-        proto === CborArray.prototype       ||
-        proto === CborMap.prototype         ||
-        proto === CborTag.prototype         ||
-        proto === CborSimple.prototype
+        cborObj instanceof CborNegInt ||
+        cborObj instanceof CborUInt ||
+        cborObj instanceof CborBytes       ||
+        cborObj instanceof CborText        ||
+        cborObj instanceof CborArray       ||
+        cborObj instanceof CborMap         ||
+        cborObj instanceof CborTag         ||
+        cborObj instanceof CborSimple
     )
 }
 

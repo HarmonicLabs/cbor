@@ -6,7 +6,7 @@ export class CborString extends ByteString
 {
     static isStrictInstance( cborStr: any ): cborStr is CborString
     {
-        return ( cborStr !== undefined && cborStr !== null ) && Object.getPrototypeOf( cborStr ) === CborString.prototype
+        return ( cborStr !== undefined && cborStr !== null ) && cborStr instanceof CborString;
     }
 
     constructor( cbor: string | Uint8Array )

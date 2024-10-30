@@ -16,17 +16,14 @@ export type LazyCborObj
 
 export function isLazyCborObj<T extends object>( cborObj: T ): cborObj is (T & LazyCborObj)
 {
-    const proto = Object.getPrototypeOf( cborObj );
-    
-    // only strict instances
     return (
-        proto === CborNegInt.prototype      ||
-        proto === CborUInt.prototype        ||
-        proto === CborBytes.prototype       ||
-        proto === CborText.prototype        ||
-        proto === LazyCborArray.prototype   ||
-        proto === LazyCborMap.prototype     ||
-        proto === LazyCborTag.prototype     ||
-        proto === CborSimple.prototype
+        cborObj instanceof CborNegInt      ||
+        cborObj instanceof CborUInt        ||
+        cborObj instanceof CborBytes       ||
+        cborObj instanceof CborText        ||
+        cborObj instanceof LazyCborArray   ||
+        cborObj instanceof LazyCborMap     ||
+        cborObj instanceof LazyCborTag     ||
+        cborObj instanceof CborSimple
     );
 }
