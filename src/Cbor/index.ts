@@ -19,11 +19,7 @@ import { LazyCborArray } from "../LazyCborObj/LazyCborArray";
 import { LazyCborMap, LazyCborMapEntry } from "../LazyCborObj/LazyCborMap";
 import { LazyCborTag } from "../LazyCborObj/LazyCborTag";
 import { CborParseError } from "../errors";
-
-/** Lowest value that can be encoded directly as (negative) integer */
-const minBigInt = BigInt("-18446744073709551616"); // -(2n ** 64n)
-/** Highest value that can be encoded directly as (positive) integer */
-const maxBigInt = BigInt("18446744073709551615");  // (2n ** 64n) - 1n
+import { MAX_4_BYTES, maxBigInt, minBigInt, OVERFLOW_1_BYTE, OVERFLOW_2_BYTES } from "../constants/max";
 
 /**
  * @private to the module; not needed elsewhere
@@ -73,6 +69,13 @@ class CborEncoding
     private _commitAppendOfByteLength( l: number ): void
     {
         this._len += l;
+    }
+
+    private appendRawBytes( bytes: Uint8Array )
+    {
+        this._prepareAppendOfByteLength( bytes.length );
+        this._buff.set( bytes, this._len );
+        this._commitAppendOfByteLength( bytes.length );
     }
 
     appendUInt8( uint8: number ): void
@@ -149,22 +152,7 @@ class CborEncoding
         this._commitAppendOfByteLength( 8 );
     }
 
-    appendRawBytes( bytes: Uint8Array )
-    {
-        assert(
-            isUint8Array( bytes ),
-            "invalid bytes passed"
-        );
-        
-        this._prepareAppendOfByteLength( bytes.length );
-        for( let i = 0; i < bytes.length; i++ )
-        {
-            writeUInt8( this._buff, readUInt8( bytes, i ) , this._len + i );
-        }
-        this._commitAppendOfByteLength( bytes.length );
-    }
-
-    appendTypeAndLength( cborType: MajorType , length: number | bigint ): void
+    appendTypeAndLength( cborType: MajorType, length: number | bigint, addInfos?: number ): void
     {
         assert(
             isMajorTypeTag( cborType ),
@@ -177,7 +165,7 @@ class CborEncoding
             "invalid length"
         );
 
-        if( length > 0b11111111_11111111_11111111_11111111 )
+        if( length > MAX_4_BYTES || addInfos === 27 )
         {
             if( typeof length === "number" ) length = BigInt( length );
             
@@ -188,34 +176,57 @@ class CborEncoding
 
         if( typeof length === "bigint" ) length = Number( length );
 
-        if (length < 24)
+        const specifcAddInfos = typeof addInfos === "number" && addInfos >= 24 && addInfos <= 27;
+
+        if(
+            length < 24 && 
+            !specifcAddInfos // use the specified addInfos if any
+        )
         {
             this.appendUInt8(
                 (cborType << 5) | length
             );
         }
-        else if ( length < 0x100 )
+        else if(
+            length < OVERFLOW_1_BYTE &&
+            (
+                !specifcAddInfos ||
+                addInfos === 24
+            )
+        )
         {
             this.appendUInt8(
                 (cborType << 5 ) | 24
             );
             this.appendUInt8( length );
         }
-        else if (length < 0x10000)
+        else if(
+            length < OVERFLOW_2_BYTES &&
+            (
+                !specifcAddInfos ||
+                addInfos === 25
+            )
+        )
         {
             this.appendUInt8(
                 (cborType << 5) | 25
             );
             this.appendUInt16( length );
         }
-        else /* if (length < 0x100000000) */
+        else /*
+        if (
+            length < 0x100000000 &&
+            (
+                !specifcAddInfos ||
+                addInfos === 26
+            )
+        ) //*/
         {
             this.appendUInt8(
                 (cborType << 5) | 26
             );
             this.appendUInt32( length );
         }
-        
     }
 
     appendCborObjEncoding( cObj: CborObj ): void
@@ -231,25 +242,33 @@ class CborEncoding
                 cObj.num >= BigInt( 0 ),
                 "encoding invalid unsigned integer as CBOR"
             );
-            const n = cObj.num;
-
             // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
-            if( n > maxBigInt )
+            if( cObj.bigNumEncoding instanceof CborBytes )
             {
-                let hex = n.toString(16);
-                if( (hex.length % 2) === 1 ) hex = "0" + hex;
                 this.appendCborObjEncoding(
                     new CborTag(
                         2,
-                        new CborBytes(
-                            fromHex( hex )
-                        )
+                        cObj.bigNumEncoding
                     )
                 );
                 return;
             }
+
+            const n = cObj.num;
+            // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
+            if( n > maxBigInt )
+            {
+                console.dir( cObj, { depth: Infinity } );
+                console.warn(
+                    "big positive int encountered but `bigNumEncoding` is not set; "+
+                    "you should see the value causing this problem in the console; "+
+                    "please report this issue at https://github.com/HarmonicLabs/cbor/issues"
+                );
+                this.appendCborObjEncoding( CborUInt.bigNum( n ) );
+                return;
+            }
             // else
-            this.appendTypeAndLength( MajorType.unsigned, cObj.num );
+            this.appendTypeAndLength( MajorType.unsigned, cObj.num, cObj.addInfos );
             return;
         }
 
@@ -259,25 +278,32 @@ class CborEncoding
                 cObj.num < BigInt( 0 ),
                 "encoding invalid negative integer as CBOR"
             );
-            let n = cObj.num;
-            // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
-            if( n < minBigInt )
+            if( cObj.bigNumEncoding instanceof CborBytes )
             {
-                n = BigInt(-1) - n;
-                let hex = n.toString(16);
-                if( (hex.length % 2) === 1 ) hex = "0" + hex;
                 this.appendCborObjEncoding(
                     new CborTag(
                         3,
-                        new CborBytes(
-                            fromHex( hex )
-                        )
+                        cObj.bigNumEncoding
                     )
                 );
                 return;
             }
+
+            const n = cObj.num;
+            // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
+            if( n < minBigInt )
+            {
+                console.dir( cObj, { depth: Infinity } );
+                console.warn(
+                    "big negative int encountered but `bigNumEncoding` is not set; "+
+                    "you should see the value causing this problem in the console; "+
+                    "please report this issue at https://github.com/HarmonicLabs/cbor/issues"
+                );
+                this.appendCborObjEncoding( CborNegInt.bigNum( n ) );
+                return;
+            }
             // else
-            this.appendTypeAndLength( MajorType.negative , -(n + BigInt( 1 )) );
+            this.appendTypeAndLength( MajorType.negative , -(n + BigInt( 1 )), cObj.addInfos );
             return;
         }
 
@@ -552,20 +578,34 @@ export class Cbor
             return true;
         }
 
-        function getLength( addInfos: number ): bigint
+        function getLengthAndBytes( addInfos: number ): [ length: bigint, bytes: Uint8Array | undefined ]
         {
             if (addInfos < 24)
-                return BigInt( addInfos );
+                return [ BigInt( addInfos ), undefined ];
             if (addInfos === 24)
-                return BigInt( getUInt8() );
+            {
+                const bytes = getBytesOfLength( 1 );
+                return [ BigInt( bytes[0] ), bytes ];
+            }
             if (addInfos === 25)
-                return BigInt( getUInt16() );
+            {
+                const bytes = getBytesOfLength( 2 );
+                return [ BigInt( readUInt16BE( bytes, 0 ) ), bytes ];
+            }
             if (addInfos === 26)
-                return BigInt( getUInt32() );
+            {
+                const bytes = getBytesOfLength( 4 );
+                return [ BigInt( readUInt32BE( bytes, 0 ) ), bytes ];
+            }
             if (addInfos === 27)
-                return getUInt64();
+            {
+                const bytes = getBytesOfLength( 8 );
+                return [ readBigUInt64BE( bytes, 0 ), bytes ];
+            }
             if (addInfos === 31)
-                return BigInt( -1 ); // indefinite length element follows
+            {
+                return [ BigInt( -1 ), undefined ];
+            }
 
             throw new BaseCborError( "Invalid length encoding while parsing CBOR" );
         }
@@ -577,7 +617,7 @@ export class Cbor
             if( headerByte === 0xff ) // break indefinite
                 return BigInt( -1 );
             
-            const elemLength = getLength( headerByte & 0b000_11111 );
+            const [ elemLength ] = getLengthAndBytes( headerByte & 0b000_11111 );
 
             if( elemLength <  0 || (headerByte >> 5 !== majorType ) )
                 throw new BaseCborError( "unexpected nested indefinite length element" );
@@ -604,7 +644,7 @@ export class Cbor
                 if( addInfos === 27 ) return getFloat64();
             }
 
-            const length = getLength( addInfos );
+            const [ length, lengtBytes ] = getLengthAndBytes( addInfos );
 
             if( length < 0 &&
                 ( major < 2 || major > 6 )
@@ -615,8 +655,13 @@ export class Cbor
 
             switch( major )
             {
-                case MajorType.unsigned: return new CborUInt( length );
-                case MajorType.negative: return new CborNegInt( -BigInt( 1 ) -length );
+                case MajorType.unsigned: return new CborUInt( length, addInfos );
+                case MajorType.negative: {
+                    return new CborNegInt(
+                        -BigInt( 1 ) -length,
+                        addInfos
+                    );
+                }
                 case MajorType.bytes:
 
                     if (length < 0) // data in UPLC v1.*.* serializes as indefinite length
@@ -727,23 +772,25 @@ export class Cbor
                     // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
                     if( l === 2 && data instanceof CborBytes )
                     {
-                        return new CborUInt(
-                            BigInt(
-                                "0x" +
-                                toHex( data.bytes )
-                            )
+                        return CborUInt.bigNum(
+                            data
+                            // BigInt(
+                            //     "0x" +
+                            //     toHex( data.bytes )
+                            // )
                         );
                     }
                     // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
                     else if( l === 3 && data instanceof CborBytes )
                     {
-                        return new CborNegInt(
-                            -(
-                                BigInt(
-                                    "0x" +
-                                    toHex( data.bytes )
-                                ) + BigInt( 1 )
-                            )
+                        return CborNegInt.bigNum(
+                            data
+                            // -(
+                            //     BigInt(
+                            //         "0x" +
+                            //         toHex( data.bytes )
+                            //     ) + BigInt( 1 )
+                            // )
                         );
                     }
                     // else just tag

@@ -2,6 +2,11 @@ import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
 import { ToRawObj } from "./interfaces/ToRawObj";
+import { ICborObj } from "./interfaces/ICborObj";
+import { CborBytes } from "./CborBytes";
+import { fromHex, toHex } from "@harmoniclabs/uint8array-utils";
+import { maxBigInt } from "../constants/max";
+import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 
 export type RawCborUInt = {
     uint: bigint
@@ -21,26 +26,74 @@ export function isRawCborUnsigned( unsign: RawCborUInt ): boolean
 }
 
 export class CborUInt
-    implements ToRawObj, Cloneable<CborUInt>
+    implements ToRawObj, Cloneable<CborUInt>, ICborObj
 {
-    readonly num : bigint;
-    
-    constructor( uint: number | bigint )
+    private _num: bigint;
+    get num(): bigint
     {
-        if( typeof uint === "number" )
+        if( this.bigNumEncoding instanceof CborBytes )
         {
-            uint = BigInt( uint );
+            this._num = BigInt(
+                "0x" +
+                toHex( this.bigNumEncoding.bytes )
+            );
         }
-
+        return this._num;
+    }
+    set num( uint: bigint | number )
+    {
         assert(
-            typeof uint === "bigint" &&
             uint >= BigInt( 0 ),
             "uint CBOR numbers must be greater or equal 0; got: " + uint
         );
+        uint = BigInt( uint );
 
-        defineReadOnlyProperty(
-            this, "num", uint
-        );
+        if( uint > maxBigInt )
+        {
+            let hex = uint.toString(16);
+            if( (hex.length % 2) === 1 ) hex = "0" + hex;
+            this.bigNumEncoding = new CborBytes( fromHex( hex ) );
+        }
+
+        this._num = uint;
+    }
+    
+    addInfos: number;
+    bigNumEncoding: CborBytes | undefined;
+
+    isBigNum(): boolean
+    {
+        return this.bigNumEncoding instanceof CborBytes;
+    }
+
+    constructor(
+        uint: number | bigint,
+        addInfos?: number,
+        bigNumEncoding?: CborBytes
+    )
+    {
+        this.num = uint;
+        this.addInfos = addInfos ?? headerFollowingToAddInfos( uint );
+        if( bigNumEncoding instanceof CborBytes )
+            this.bigNumEncoding = bigNumEncoding;
+        else
+            this.bigNumEncoding = undefined;
+    }
+
+    static bigNum( encoding: CborBytes | bigint | number ): CborUInt
+    {
+        let n: bigint | undefined = undefined;
+        if(!( encoding instanceof CborBytes ))
+        {
+            encoding = BigInt(encoding);
+            n = encoding;
+            let hex = encoding.toString(16);
+            if( (hex.length % 2) === 1 ) hex = "0" + hex;
+            encoding = new CborBytes( fromHex( hex ) );
+        }
+        else { n = BigInt( "0x" + toHex( encoding.bytes ) ); }
+        
+        return new CborUInt( n, 0, encoding );
     }
 
     toRawObj(): RawCborUInt
