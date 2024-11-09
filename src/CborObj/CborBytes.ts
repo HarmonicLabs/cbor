@@ -1,8 +1,10 @@
-import { isUint8Array } from "@harmoniclabs/uint8array-utils";
+import { concatUint8Array, isUint8Array } from "@harmoniclabs/uint8array-utils";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
 import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
+import { ICborObj } from "./interfaces/ICborObj";
+import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 
 export type RawCborBytes = {
     bytes: Uint8Array
@@ -21,57 +23,45 @@ export function isRawCborBytes( b: RawCborBytes ): boolean
 }
 
 export class CborBytes
-    implements ToRawObj, Cloneable<CborBytes>
+    implements ToRawObj, Cloneable<CborBytes>, ICborObj
 {
     /** @deprecated use `bytes` instead */
     get buffer(): Uint8Array { return this.bytes; }
-    readonly bytes: Uint8Array;
+
+    /** 
+     * concatenates all the chunks
+     * returns 
+     **/
+    get bytes(): Uint8Array
+    {
+        if( this.chunks instanceof Uint8Array )
+            return Uint8Array.prototype.slice.call( this.chunks );
+
+        return concatUint8Array( ...this.chunks.map( ch => ch.bytes ) );
+    }
+
     /**
      * if the bytes where of definite length this just wraps the `bytes`
      * property in a single element array
      * 
      * if the bytes where of indefinite length this array has more than one element
     **/
-    readonly chunks: Uint8Array[];
+    chunks: Uint8Array | CborBytes[];
 
-    readonly isDefiniteLength: boolean
-    
-    constructor( bytes: Uint8Array, restChunks: Uint8Array[] | undefined = undefined )
+    get isDefiniteLength()
     {
-        assert(
-            isUint8Array( bytes ),
-            "invalid buffer in CborBytes"
-        );
+        return this.chunks instanceof Uint8Array;
+    }
 
-        const _originalRestWasEmptyArray = Array.isArray( restChunks ) && restChunks.length === 0;
-        
-        restChunks = Array.isArray( restChunks ) ? restChunks.slice() : [];
-        restChunks = restChunks.filter( chunk => chunk instanceof Uint8Array );
-
-        const _isDefiniteLength = (!_originalRestWasEmptyArray) && restChunks.length === 0;
-
-        Object.defineProperties(
-            this, {
-                bytes: {
-                    get: _isDefiniteLength ? () => bytes : () => concatBytes( bytes, (restChunks ?? []) ),
-                    set: () => {},
-                    enumerable: true,
-                    configurable: false
-                },
-                chunks: {
-                    value: Object.freeze( _isDefiniteLength ? [ bytes ] : [ bytes, ...(restChunks ?? []) ] ),
-                    writable: false,
-                    enumerable: true,
-                    configurable: false
-                },
-                isDefiniteLength: {
-                    value: _isDefiniteLength,
-                    writable: false,
-                    enumerable: true,
-                    configurable: false
-                }
-            }
-        );
+    addInfos: number;
+    
+    constructor(
+        bytes: Uint8Array | CborBytes[],
+        addInfos?: number,
+    )
+    {
+        this.chunks = bytes;
+        this.addInfos = addInfos ?? headerFollowingToAddInfos( this.bytes.length );
     }
 
     toRawObj(): RawCborBytes
@@ -83,16 +73,9 @@ export class CborBytes
 
     clone(): CborBytes
     {
-        if( this.isDefiniteLength )
         return new CborBytes(
-            Uint8Array.prototype.slice.call( this.bytes )
-        );
-        
-        const [ bytes, ...rest ] = this.chunks;
-
-        return new CborBytes(
-            Uint8Array.prototype.slice.call( bytes ),
-            rest.map( chunk => Uint8Array.prototype.slice.call( chunk ) )
+            this.chunks,
+            this.addInfos
         );
     }
 }

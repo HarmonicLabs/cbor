@@ -87,4 +87,18 @@ describe("neg int", () => {
         ).toEqual( str );
     });
 
+    test("remembers 10 byte bignum max", () => {
+
+        // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums 
+        const str = "c34affffffffffffffffffff"; 
+        const parsed = Cbor.parse( str ) as CborNegInt;
+
+        expect( parsed instanceof CborNegInt ).toBe( true );
+        expect( parsed.num ).toEqual( BigInt(-1) - BigInt( "0xffffffffffffffffffff" ) );
+
+        expect(
+            Cbor.encode( parsed ).toString()
+        ).toEqual( str );
+    });
+
 });

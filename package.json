@@ -35,7 +35,7 @@
   "dependencies": {
     "@harmoniclabs/bytestring": "^1.0.0",
     "@harmoniclabs/obj-utils": "^1.0.0",
-    "@harmoniclabs/uint8array-utils": "^1.0.0"
+    "@harmoniclabs/uint8array-utils": "^1.0.3"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.18.6",

@@ -231,6 +231,7 @@ class CborEncoding
 
     appendCborObjEncoding( cObj: CborObj ): void
     {
+        console.dir( cObj, { depth: Infinity } );
         assert(
             isCborObj( cObj ),
             "expected 'CborObj' strict instance; got: " + cObj
@@ -309,10 +310,11 @@ class CborEncoding
 
         if( cObj instanceof CborBytes )
         {
-            if( cObj.isDefiniteLength )
+            // if( cObj.isDefiniteLength )
+            if( cObj.chunks instanceof Uint8Array )
             {
-                const bs = cObj.bytes;
-                this.appendTypeAndLength( MajorType.bytes , bs.length );
+                const bs = cObj.chunks;
+                this.appendTypeAndLength( MajorType.bytes , bs.length, cObj.addInfos );
                 this.appendRawBytes( bs );
                 return;
             }
@@ -320,12 +322,9 @@ class CborEncoding
                 const chunks = cObj.chunks;
                 const nChunks = chunks.length;
                 this.appendUInt8( (MajorType.bytes << 5) | 31 );
-                let bs: Uint8Array;
                 for( let i = 0; i < nChunks; i++ )
                 {
-                    bs = chunks[i];
-                    this.appendTypeAndLength( MajorType.bytes , bs.length );
-                    this.appendRawBytes( bs );
+                    this.appendCborObjEncoding( chunks[i] );
                 }
                 this.appendUInt8( 0b111_11111 ); // break
                 return;
@@ -610,6 +609,15 @@ export class Cbor
             throw new BaseCborError( "Invalid length encoding while parsing CBOR" );
         }
 
+        // if the next byte is a break, it increments the offset and returns true
+        // otherwise returns false without side effects
+        function skipBreak(): boolean
+        {
+            const isBreak = readUInt8( bytes, offset ) === 0xff;
+            if( isBreak ) incrementOffsetBy( 1 );
+            return isBreak;
+        }
+
         function getIndefiniteElemLengthOfType( majorType: MajorType ): bigint
         {
             const headerByte = getUInt8();
@@ -662,41 +670,39 @@ export class Cbor
                         addInfos
                     );
                 }
-                case MajorType.bytes:
+                case MajorType.bytes: {
 
-                    if (length < 0) // data in UPLC v1.*.* serializes as indefinite length
+                    // data in UPLC v1.*.* serializes as indefinite length
+                    // indefinie length
+                    if (length < 0) 
                     {
-                        const chunks: Uint8Array[] = [];
-
-                        let elementLength: bigint;
-                        while ( (elementLength = getIndefiniteElemLengthOfType( major ) ) >= 0)
+                        const chunks: CborBytes[] = [];
+    
+                        let elem: CborBytes;
+                        while ( !skipBreak() )
                         {
-                            chunks.push(
-                                getBytesOfLength( // increments offset
-                                    Number( elementLength )
-                                )
-                            );
+                            elem = parseCborObj() as CborBytes;
+                            if(!(elem instanceof CborBytes))
+                            {
+                                throw new BaseCborError(
+                                    "unexpected indefinite length element while parsing indefinite length bytes"
+                                );
+                            }
+                            chunks.push( elem  );
                         }
-
-                        if( chunks.length === 0 )
+    
                         return new CborBytes(
-                            new Uint8Array([]),
-                            []
-                        ); // empty indefinite length
-
-                        const [ fst, ...rest ] = chunks;
-
-                        return new CborBytes(
-                            fst,
-                            rest
-                        ); // indefinte length
+                            chunks,
+                            addInfos
+                        );
                     }
                     
                     // definite length
                     return new CborBytes(
-                        getBytesOfLength( Number( length ) )
+                        getBytesOfLength( Number( length ) ),
+                        addInfos
                     );
-
+                }
                 case MajorType.text:
                     
                     if( length < 0 ) // indefinite length

@@ -90,4 +90,18 @@ describe("uint", () => {
         ).toEqual( str );
     });
 
+    test("remembers 10 byte bignum max", () => {
+
+        // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums 
+        const str = "c24affffffffffffffffffff";
+        const parsed = Cbor.parse( str ) as CborUInt;
+
+        expect( parsed instanceof CborUInt ).toBe( true );
+        expect( parsed.num ).toEqual( BigInt("0xffffffffffffffffffff") );
+
+        expect(
+            Cbor.encode( parsed ).toString()
+        ).toEqual( str );
+    });
+
 });
