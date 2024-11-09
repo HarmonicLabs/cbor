@@ -2,6 +2,8 @@ import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
 import { ToRawObj } from "./interfaces/ToRawObj";
+import { ICborObj } from "./interfaces/ICborObj";
+import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 
 export type RawCborText = {
     text: string
@@ -20,20 +22,31 @@ export function isRawCborText( t: RawCborText ): boolean
 }
 
 export class CborText
-    implements ToRawObj, Cloneable<CborText>
+    implements ToRawObj, Cloneable<CborText>, ICborObj
 {
-    readonly text : string;
-    
-    constructor( text: string )
+    get text(): string
     {
-        assert(
-            typeof text === "string",
-            "invalid text in 'CborText' passed"
-        );
+        if( typeof this.chunks === "string" ) return this.chunks;
 
-        defineReadOnlyProperty(
-            this, "text", text
-        );
+        return this.chunks.reduce( ( accum, chunk ) => accum + chunk.text, "" );
+    }
+
+    chunks: string | CborText[];
+    
+    get isDefiniteLength()
+    {
+        return typeof this.chunks === "string";
+    }
+
+    addInfos: number;
+
+    constructor(
+        text: string | CborText[],
+        addInfos?: number,
+    )
+    {
+        this.chunks = text;
+        this.addInfos = addInfos ?? headerFollowingToAddInfos( text.length )
     }
 
     toRawObj(): RawCborText

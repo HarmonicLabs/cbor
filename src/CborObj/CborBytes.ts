@@ -1,8 +1,6 @@
 import { concatUint8Array, isUint8Array } from "@harmoniclabs/uint8array-utils";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
-import { assert } from "../utils/assert";
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { ICborObj } from "./interfaces/ICborObj";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 

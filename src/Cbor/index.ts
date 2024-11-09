@@ -231,7 +231,6 @@ class CborEncoding
 
     appendCborObjEncoding( cObj: CborObj ): void
     {
-        console.dir( cObj, { depth: Infinity } );
         assert(
             isCborObj( cObj ),
             "expected 'CborObj' strict instance; got: " + cObj
@@ -333,9 +332,26 @@ class CborEncoding
 
         if( cObj instanceof CborText )
         {
-            const bs = fromUtf8( cObj.text );
-            this.appendTypeAndLength( MajorType.text , bs.length );
-            this.appendRawBytes( bs );
+            // if( cObj.isDefiniteLength )
+            if( typeof cObj.chunks === "string" )
+            {
+                const bs = fromUtf8( cObj.text );
+                this.appendTypeAndLength( MajorType.text , bs.length, cObj.addInfos );
+                this.appendRawBytes( bs );
+                return;
+            }
+            else
+            {
+                const chunks = cObj.chunks;
+                const nChunks = chunks.length;
+                this.appendUInt8( (MajorType.text << 5) | 31 );
+                for( let i = 0; i < nChunks; i++ )
+                {
+                    this.appendCborObjEncoding( chunks[i] );
+                }
+                this.appendUInt8( 0b111_11111 ); // break
+                return;
+            }
             return;
         }
 
@@ -703,27 +719,31 @@ export class Cbor
                         addInfos
                     );
                 }
-                case MajorType.text:
+                case MajorType.text: {
                     
                     if( length < 0 ) // indefinite length
                     {
-                        let str = "";
-                        let l: number = 0;
+                        const chunks: CborText[] = [];
 
-                        while(
-                            (
-                                l = Number( getIndefiniteElemLengthOfType( MajorType.text ) )
-                            ) >= 0
-                        )
+                        let elem: CborText;
+                        while(!skipBreak())
                         {
-                            str += getTextOfLength( l );
+                            elem = parseCborObj() as CborText;
+                            if(!(elem instanceof CborText))
+                            {
+                                console.dir( elem, { depth: Infinity } );
+                                throw new BaseCborError(
+                                    "unexpected indefinite length element while parsing indefinite length text"
+                                );
+                            }
+                            chunks.push( elem );
                         }
 
-                        return new CborText( str );
+                        return new CborText( chunks, addInfos );
                     }
 
-                    return new CborText( getTextOfLength( Number( length ) ) );
-
+                    return new CborText( getTextOfLength( Number( length ) ), addInfos );
+                }
                 case MajorType.array:
 
                     const arrOfCbors: CborObj[] = [];

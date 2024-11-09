@@ -195,11 +195,6 @@ describe("bytes", () => {
 
                 expect( parsed instanceof CborBytes ).toBe( true );
                 expect( parsed.bytes ).toEqual( emptyBytes );
-                // expect( parsed.chunks )
-                // .toEqual(
-                //     [ emptyBytes, emptyBytes, emptyBytes, emptyBytes, emptyBytes ]
-                //     .map( b => new CborBytes( b ) )
-                // );
 
                 expect(
                     Cbor.encode( parsed ).toString()
