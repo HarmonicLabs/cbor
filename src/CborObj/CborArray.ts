@@ -3,9 +3,12 @@ import { Cloneable } from "../utils/Cloneable";
 import { CborObj, cborObjFromRaw, isCborObj, isRawCborObj, RawCborObj } from "./CborObj";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { assert } from "../utils/assert";
+import { ICborObj } from "./interfaces/ICborObj";
+import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 
 export interface CborArrayOptions {
-    indefinite?: boolean
+    indefinite?: boolean,
+    addInfos?: number | undefined
 }
 
 export type RawCborArray = {
@@ -27,14 +30,17 @@ export function isRawCborArray( arr: RawCborArray ): boolean
 }
 
 const defaultOpts: Required<CborArrayOptions> = Object.freeze({
-    indefinite: false
+    indefinite: false,
+    addInfos: 0
 });
 
 export class CborArray
-    implements ToRawObj, Cloneable<CborArray>
+    implements ToRawObj, Cloneable<CborArray>, ICborObj
 {
     readonly array: CborObj[];
     readonly indefinite!: boolean;
+
+    addInfos: number;
     
     constructor( array: CborObj[], options?: CborArrayOptions )
     {
@@ -45,13 +51,9 @@ export class CborArray
         );
 
         const indefinite = options?.indefinite === true ? true : defaultOpts.indefinite;
-
-        defineReadOnlyProperty(
-            this, "array", array
-        );
-        defineReadOnlyProperty(
-            this, "indefinite", indefinite === true
-        );
+        this.addInfos = options?.addInfos ?? headerFollowingToAddInfos( array.length );
+        this.array = array;
+        this.indefinite = indefinite === true;
     }
 
     toRawObj(): RawCborArray

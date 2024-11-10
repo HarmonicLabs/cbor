@@ -1,13 +1,18 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
-import { CborObj, cborObjFromRaw, isRawCborObj, RawCborObj } from ".";
+import { defineReadOnlyProperty, isObject } from "@harmoniclabs/obj-utils";
+import { CborObj, cborObjFromRaw, isCborObj, isRawCborObj, RawCborObj } from ".";
 import { ToRawObj } from "./interfaces/ToRawObj";
+import { ICborObj } from "./interfaces/ICborObj";
+import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
+import { assert } from "../utils/assert";
 
 export interface CborMapOptions {
-    indefinite?: boolean
+    indefinite?: boolean,
+    addInfos?: number | undefined
 }
 
 const defaultOpts: Required<CborMapOptions> = Object.freeze({
-    indefinite: false
+    indefinite: false,
+    addInfos: undefined as any
 });
 
 export type RawCborMapEntry = {
@@ -50,22 +55,30 @@ export type CborMapEntry = {
 };
 
 export class CborMap
-    implements ToRawObj
+    implements ToRawObj, ICborObj
 {
     readonly map : CborMapEntry[];
     
     readonly indefinite!: boolean;
 
+    addInfos: number;
+
     constructor( map: CborMapEntry[], options?: CborMapOptions )
     {
-        const indefinite = options?.indefinite === true ? true : defaultOpts.indefinite;
+        assert(
+            Array.isArray( map ) &&
+            map.every( entry => (
+                isObject(  entry ) &&
+                isCborObj( entry.k ) &&
+                isCborObj( entry.v )
+            )),
+            "in 'CborMap' constructor: invalid input; got: " + map
+        );
 
-        defineReadOnlyProperty(
-            this, "map", map
-        );
-        defineReadOnlyProperty(
-            this, "indefinite", Boolean( indefinite )
-        );
+        const indefinite = options?.indefinite === true ? true : defaultOpts.indefinite;
+        this.addInfos = options?.addInfos ?? headerFollowingToAddInfos( map.length );
+        this.map = map;
+        this.indefinite = indefinite === true;
     }
 
     toRawObj(): RawCborMap

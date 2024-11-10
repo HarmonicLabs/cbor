@@ -363,7 +363,7 @@ class CborEncoding
             if( cObj.indefinite )
                 this.appendUInt8( 0x9f );
             else
-                this.appendTypeAndLength( MajorType.array, arrLen );
+                this.appendTypeAndLength( MajorType.array, arrLen, cObj.addInfos );
 
             for( let i = 0; i < arrLen; i++ )
             {
@@ -383,7 +383,7 @@ class CborEncoding
             if( cObj.indefinite )
                 this.appendUInt8( 0xbf );
             else
-                this.appendTypeAndLength( MajorType.map, map.length );
+                this.appendTypeAndLength( MajorType.map, map.length, cObj.addInfos );
 
             for( let i = 0; i < map.length; i++ )
             {
@@ -586,12 +586,25 @@ export class Cbor
             );
         }
 
-        function incrementIfBreak(): boolean
+        /**
+         *  if the next byte is a break, it increments the offset and returns true
+         *  otherwise returns false without side effects
+         */
+        function skipBreak(): boolean
         {
             if( readUInt8( bytes, offset ) !== 0xff ) return false;
             incrementOffsetBy( 1 );
             return true;
         }
+
+        /*
+        function skipBreak(): boolean
+        {
+            const isBreak = readUInt8( bytes, offset ) === 0xff;
+            if( isBreak ) incrementOffsetBy( 1 );
+            return isBreak;
+        }
+        */
 
         function getLengthAndBytes( addInfos: number ): [ length: bigint, bytes: Uint8Array | undefined ]
         {
@@ -623,15 +636,6 @@ export class Cbor
             }
 
             throw new BaseCborError( "Invalid length encoding while parsing CBOR" );
-        }
-
-        // if the next byte is a break, it increments the offset and returns true
-        // otherwise returns false without side effects
-        function skipBreak(): boolean
-        {
-            const isBreak = readUInt8( bytes, offset ) === 0xff;
-            if( isBreak ) incrementOffsetBy( 1 );
-            return isBreak;
         }
 
         function getIndefiniteElemLengthOfType( majorType: MajorType ): bigint
@@ -744,34 +748,34 @@ export class Cbor
 
                     return new CborText( getTextOfLength( Number( length ) ), addInfos );
                 }
-                case MajorType.array:
-
-                    const arrOfCbors: CborObj[] = [];
-
+                case MajorType.array: {
+                    let arrOfCbors: CborObj[];
                     if( length < 0 )
                     {
-                        while( !incrementIfBreak() )
+                        arrOfCbors = [];
+                        while( !skipBreak() )
                         {
                             arrOfCbors.push( parseCborObj() );
                         }
                     }
                     else
                     {
+                        arrOfCbors = new Array( Number( length ) );
                         for( let i = 0; i < length; i++ )
                         {
-                            arrOfCbors.push( parseCborObj() );
+                            arrOfCbors[i] = parseCborObj();
                         }
                     }
 
-                    return new CborArray( arrOfCbors, { indefinite: length < 0 } );
-
-                case MajorType.map:
-
-                    const entries: CborMapEntry[] = [];
+                    return new CborArray( arrOfCbors, { indefinite: length < 0, addInfos } );
+                }
+                case MajorType.map: {
+                    let entries: CborMapEntry[];
 
                     if( length < 0 )
                     {
-                        while( !incrementIfBreak() )
+                        entries = [];
+                        while( !skipBreak() )
                         {
                             entries.push({
                                 k: parseCborObj(),
@@ -781,17 +785,18 @@ export class Cbor
                     }
                     else
                     {
+                        entries = new Array( Number( length ) );
                         for ( let i = 0; i < length ; i++ )
                         {
-                            entries.push({
+                            entries[i] = {
                                 k: parseCborObj(),
                                 v: parseCborObj()
-                            });
+                            };
                         }
                     }
 
-                    return new CborMap( entries, { indefinite: length < 0 } );
-
+                    return new CborMap( entries, { indefinite: length < 0, addInfos } );
+                }
                 case MajorType.tag: {
                     const l = Number( length );
                     const data = parseCborObj();
@@ -976,7 +981,7 @@ export class Cbor
             );
         }
 
-        function incrementIfBreak(): boolean
+        function skipBreak(): boolean
         {
             if( readUInt8( bytes, offset ) !== 0xff ) return false;
             incrementOffsetBy( 1 );
@@ -1104,7 +1109,7 @@ export class Cbor
 
                     if( length < 0 )
                     {
-                        while( !incrementIfBreak() )
+                        while( !skipBreak() )
                         {
                             void getNextElemBytes();
                         }
@@ -1123,7 +1128,7 @@ export class Cbor
 
                     if( length < 0 )
                     {
-                        while( !incrementIfBreak() )
+                        while( !skipBreak() )
                         {
                             void getNextElemBytes();
                             void getNextElemBytes();
@@ -1257,7 +1262,7 @@ export class Cbor
                     {
                         const arr: Uint8Array[] = [];
 
-                        while( !incrementIfBreak() )
+                        while( !skipBreak() )
                         {
                             arr.push( getNextElemBytes() );
                         }
@@ -1284,7 +1289,7 @@ export class Cbor
                     {
                         const entries: LazyCborMapEntry[] = [];
 
-                        while( !incrementIfBreak() )
+                        while( !skipBreak() )
                         {
                             entries.push({
                                 k: getNextElemBytes(),
