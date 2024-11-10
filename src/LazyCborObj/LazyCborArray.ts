@@ -2,7 +2,8 @@ import { CborArrayOptions } from "../CborObj";
 import { assert } from "../utils/assert";
 
 const defaultOpts: Required<CborArrayOptions> = Object.freeze({
-    indefinite: false
+    indefinite: false,
+    addInfos: 0
 });
 
 export class LazyCborArray

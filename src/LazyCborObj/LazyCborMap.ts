@@ -8,7 +8,8 @@ export type LazyCborMapEntry = {
 };
 
 const defaultOpts: Required<CborMapOptions> = Object.freeze({
-    indefinite: false
+    indefinite: false,
+    addInfos: undefined as any
 });
 
 export function isLazyCborMapEntry( thing: any ): thing is LazyCborMapEntry

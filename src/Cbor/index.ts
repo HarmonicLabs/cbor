@@ -606,34 +606,20 @@ export class Cbor
         }
         */
 
-        function getLengthAndBytes( addInfos: number ): [ length: bigint, bytes: Uint8Array | undefined ]
+        function getLength( addInfos: number ): bigint
         {
             if (addInfos < 24)
-                return [ BigInt( addInfos ), undefined ];
+                return BigInt( addInfos );
             if (addInfos === 24)
-            {
-                const bytes = getBytesOfLength( 1 );
-                return [ BigInt( bytes[0] ), bytes ];
-            }
+                return BigInt( getUInt8() );
             if (addInfos === 25)
-            {
-                const bytes = getBytesOfLength( 2 );
-                return [ BigInt( readUInt16BE( bytes, 0 ) ), bytes ];
-            }
+                return BigInt( getUInt16() );
             if (addInfos === 26)
-            {
-                const bytes = getBytesOfLength( 4 );
-                return [ BigInt( readUInt32BE( bytes, 0 ) ), bytes ];
-            }
+                return BigInt( getUInt32() );
             if (addInfos === 27)
-            {
-                const bytes = getBytesOfLength( 8 );
-                return [ readBigUInt64BE( bytes, 0 ), bytes ];
-            }
+                return getUInt64();
             if (addInfos === 31)
-            {
-                return [ BigInt( -1 ), undefined ];
-            }
+                return BigInt( -1 ); // indefinite length element follows
 
             throw new BaseCborError( "Invalid length encoding while parsing CBOR" );
         }
@@ -645,7 +631,7 @@ export class Cbor
             if( headerByte === 0xff ) // break indefinite
                 return BigInt( -1 );
             
-            const [ elemLength ] = getLengthAndBytes( headerByte & 0b000_11111 );
+            const elemLength = getLength( headerByte & 0b000_11111 );
 
             if( elemLength <  0 || (headerByte >> 5 !== majorType ) )
                 throw new BaseCborError( "unexpected nested indefinite length element" );
@@ -672,7 +658,7 @@ export class Cbor
                 if( addInfos === 27 ) return getFloat64();
             }
 
-            const [ length, lengtBytes ] = getLengthAndBytes( addInfos );
+            const length = getLength( addInfos );
 
             if( length < 0 &&
                 ( major < 2 || major > 6 )
@@ -805,10 +791,6 @@ export class Cbor
                     {
                         return CborUInt.bigNum(
                             data
-                            // BigInt(
-                            //     "0x" +
-                            //     toHex( data.bytes )
-                            // )
                         );
                     }
                     // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
@@ -816,12 +798,6 @@ export class Cbor
                     {
                         return CborNegInt.bigNum(
                             data
-                            // -(
-                            //     BigInt(
-                            //         "0x" +
-                            //         toHex( data.bytes )
-                            //     ) + BigInt( 1 )
-                            // )
                         );
                     }
                     // else just tag
@@ -836,7 +812,7 @@ export class Cbor
                     if( nLen === 22 ) return new CborSimple( null );        // 0xf6
                     if( nLen === 23 ) return new CborSimple( undefined );   // 0xf7
 
-                    // flaots handled at the beginning of the function
+                    // floats handled at the beginning of the function
                     // since length isn't required
 
                     throw new BaseCborError(
@@ -1158,7 +1134,7 @@ export class Cbor
                     if( nLen === 22 ) return bytes.slice( elemStart, offset ); // 0xf6
                     if( nLen === 23 ) return bytes.slice( elemStart, offset ); // 0xf7
 
-                    // flaots handled at the beginning of the function
+                    // floats handled at the beginning of the function
                     // since length isn't required
 
                     throw new BaseCborError(
@@ -1196,94 +1172,93 @@ export class Cbor
 
             switch( major )
             {
-                case MajorType.unsigned: return new CborUInt( length );
-                case MajorType.negative: return new CborNegInt( -BigInt( 1 ) -length );
-                case MajorType.bytes:
+                case MajorType.unsigned: return new CborUInt( length, addInfos );
+                case MajorType.negative: {
+                    return new CborNegInt(
+                        -BigInt( 1 ) -length,
+                        addInfos
+                    );
+                }
+                case MajorType.bytes: {
 
-                    if (length < 0) // data in UPLC v1.*.* serializes as indefinite length
+                    // data in UPLC v1.*.* serializes as indefinite length
+                    // indefinie length
+                    if (length < 0) 
                     {
-                        const chunks: Uint8Array[] = [];
-                        let fullUint8ArrayLength: number = 0;
-
-                        let elementLength: bigint;
-                        while ( (elementLength = getIndefiniteElemLengthOfType( major ) ) >= 0)
+                        const chunks: CborBytes[] = [];
+    
+                        let elem: CborBytes;
+                        while ( !skipBreak() )
                         {
-                            fullUint8ArrayLength += Number( elementLength );
-                            chunks.push(
-                                getBytesOfLength( // increments offset
-                                    Number( elementLength )
-                                )
-                            );
+                            elem = parseCborObj() as CborBytes;
+                            if(!(elem instanceof CborBytes))
+                            {
+                                throw new BaseCborError(
+                                    "unexpected indefinite length element while parsing indefinite length bytes"
+                                );
+                            }
+                            chunks.push( elem  );
                         }
-
-                        let fullUint8Array = new Uint8Array(fullUint8ArrayLength);
-                        let fullUint8ArrayOffset = 0;
-
-                        for (let i = 0; i < chunks.length; ++i)
-                        {
-                            fullUint8Array.set(chunks[i], fullUint8ArrayOffset);
-                            fullUint8ArrayOffset += chunks[i].length;
-                        }
-
+    
                         return new CborBytes(
-                            Uint8Array.from( fullUint8Array )
+                            chunks,
+                            addInfos
                         );
                     }
                     
                     // definite length
                     return new CborBytes(
-                        getBytesOfLength( Number( length ) )
+                        getBytesOfLength( Number( length ) ),
+                        addInfos
                     );
-
-                case MajorType.text:
+                }
+                case MajorType.text: {
                     
                     if( length < 0 ) // indefinite length
                     {
-                        let str = "";
-                        let l: number = 0;
+                        const chunks: CborText[] = [];
 
-                        while(
-                            (
-                                l = Number( getIndefiniteElemLengthOfType( MajorType.text ) )
-                            ) >= 0
-                        )
+                        let elem: CborText;
+                        while(!skipBreak())
                         {
-                            str += getTextOfLength( l );
+                            elem = parseCborObj() as CborText;
+                            if(!(elem instanceof CborText))
+                            {
+                                console.dir( elem, { depth: Infinity } );
+                                throw new BaseCborError(
+                                    "unexpected indefinite length element while parsing indefinite length text"
+                                );
+                            }
+                            chunks.push( elem );
                         }
 
-                        return new CborText( str );
+                        return new CborText( chunks, addInfos );
                     }
 
-                    return new CborText( getTextOfLength( Number( length ) ) );
-
-                case MajorType.array:
+                    return new CborText( getTextOfLength( Number( length ) ), addInfos );
+                }
+                case MajorType.array: {
 
                     if( length < 0 )
                     {
                         const arr: Uint8Array[] = [];
-
                         while( !skipBreak() )
                         {
                             arr.push( getNextElemBytes() );
                         }
-
                         return new LazyCborArray( arr, { indefinite: true } );
                     }
                     else
                     {
                         const arr = new Array<Uint8Array>( Number( length ) );
-
                         for( let i = 0; i < length; i++ )
                         {
                             arr[i] = getNextElemBytes();
                         }
-
                         return new LazyCborArray( arr, { indefinite: false } );
                     }
-
-
-                case MajorType.map:
-
+                }
+                case MajorType.map: {
 
                     if( length < 0 )
                     {
@@ -1312,7 +1287,7 @@ export class Cbor
                         }
                         return new LazyCborMap( entries, { indefinite: true } );
                     }
-
+                }
                 case MajorType.tag:
                     return new LazyCborTag( Number( length ) , parseCborObj() );
 
@@ -1325,7 +1300,7 @@ export class Cbor
                     if( nLen === 22 ) return new CborSimple( null );        // 0xf6
                     if( nLen === 23 ) return new CborSimple( undefined );   // 0xf7
 
-                    // flaots handled at the beginning of the function
+                    // floats handled at the beginning of the function
                     // since length isn't required
 
                     throw new BaseCborError(

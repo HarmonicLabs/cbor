@@ -10,8 +10,8 @@ function identityTestFor( cObj: CborObj ): void
             Cbor.encode(
                 cObj
             )
-        )
-    ).toEqual( cObj );
+        ).toRawObj()
+    ).toEqual( cObj.toRawObj() );
 }
 
 describe( "Cbor.parse( Cbor.encode( cObj ) ) === cObj", () => {
