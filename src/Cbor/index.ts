@@ -1246,7 +1246,7 @@ export class Cbor
                         {
                             arr.push( getNextElemBytes() );
                         }
-                        return new LazyCborArray( arr, { indefinite: true } );
+                        return new LazyCborArray( arr, { indefinite: true, addInfos } );
                     }
                     else
                     {
@@ -1255,7 +1255,7 @@ export class Cbor
                         {
                             arr[i] = getNextElemBytes();
                         }
-                        return new LazyCborArray( arr, { indefinite: false } );
+                        return new LazyCborArray( arr, { indefinite: false, addInfos } );
                     }
                 }
                 case MajorType.map: {
@@ -1272,7 +1272,7 @@ export class Cbor
                             });
                         }
 
-                        return new LazyCborMap( entries, { indefinite: true } );
+                        return new LazyCborMap( entries, { indefinite: true, addInfos } );
                     }
                     else
                     {
@@ -1285,7 +1285,7 @@ export class Cbor
                                 v: getNextElemBytes()
                             };
                         }
-                        return new LazyCborMap( entries, { indefinite: true } );
+                        return new LazyCborMap( entries, { indefinite: true, addInfos } );
                     }
                 }
                 case MajorType.tag:
