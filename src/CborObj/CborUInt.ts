@@ -7,6 +7,7 @@ import { CborBytes } from "./CborBytes";
 import { fromHex, toHex } from "@harmoniclabs/uint8array-utils";
 import { maxBigInt } from "../constants/max";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
+import { SubCborRef } from "../SubCborRef";
 
 export type RawCborUInt = {
     uint: bigint
@@ -69,7 +70,8 @@ export class CborUInt
     constructor(
         uint: number | bigint,
         addInfos?: number,
-        bigNumEncoding?: CborBytes
+        bigNumEncoding?: CborBytes,
+        public subCborRef?: SubCborRef
     )
     {
         this.num = uint;
@@ -80,7 +82,10 @@ export class CborUInt
             this.bigNumEncoding = undefined;
     }
 
-    static bigNum( encoding: CborBytes | bigint | number ): CborUInt
+    static bigNum(
+        encoding: CborBytes | bigint | number,
+        subCborRef?: SubCborRef
+    ): CborUInt
     {
         let n: bigint | undefined = undefined;
         if(!( encoding instanceof CborBytes ))
@@ -93,7 +98,7 @@ export class CborUInt
         }
         else { n = BigInt( "0x" + toHex( encoding.bytes ) ); }
         
-        return new CborUInt( n, 0, encoding );
+        return new CborUInt( n, 0, encoding, subCborRef );
     }
 
     toRawObj(): RawCborUInt
@@ -105,6 +110,11 @@ export class CborUInt
 
     clone(): CborUInt
     {
-        return new CborUInt( this.num )
+        return new CborUInt(
+            this.num,
+            this.addInfos,
+            this.bigNumEncoding?.clone(),
+            this.subCborRef?.clone()
+        );
     }
 }

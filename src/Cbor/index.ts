@@ -20,6 +20,8 @@ import { LazyCborMap, LazyCborMapEntry } from "../LazyCborObj/LazyCborMap";
 import { LazyCborTag } from "../LazyCborObj/LazyCborTag";
 import { CborParseError } from "../errors";
 import { MAX_4_BYTES, maxBigInt, minBigInt, OVERFLOW_1_BYTE, OVERFLOW_2_BYTES } from "../constants/max";
+import { SubCborRef } from "../SubCborRef";
+import { overwriteSubCborRefBytes } from "./overwriteSubCborRefBytes";
 
 /**
  * @private to the module; not needed elsewhere
@@ -31,7 +33,17 @@ class CborEncoding
 
     get bytes(): Uint8Array
     {
-        return this._buff.slice( 0, this._len )
+        return Uint8Array.prototype.slice.call(
+            this._buff,
+            0,
+            this._len
+        );
+        // this._buff.slice( 0, this._len );
+    }
+
+    get length(): number
+    {
+        return this._len;
     }
 
     constructor()
@@ -229,12 +241,14 @@ class CborEncoding
         }
     }
 
-    appendCborObjEncoding( cObj: CborObj ): void
+    appendCborObjEncoding( cObj: CborObj ): SubCborRef
     {
         assert(
             isCborObj( cObj ),
             "expected 'CborObj' strict instance; got: " + cObj
         );
+        
+        const startOffset = this.length;
 
         if( cObj instanceof CborUInt )
         {
@@ -251,7 +265,11 @@ class CborEncoding
                         cObj.bigNumEncoding
                     )
                 );
-                return;
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
             }
 
             const n = cObj.num;
@@ -265,11 +283,19 @@ class CborEncoding
                     "please report this issue at https://github.com/HarmonicLabs/cbor/issues"
                 );
                 this.appendCborObjEncoding( CborUInt.bigNum( n ) );
-                return;
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
             }
             // else
             this.appendTypeAndLength( MajorType.unsigned, cObj.num, cObj.addInfos );
-            return;
+            return cObj.subCborRef = new SubCborRef({
+                _bytes: this._buff, // will be overwritten at top level `.encode` call
+                start: startOffset,
+                end: this.length
+            });
         }
 
         if( cObj instanceof CborNegInt )
@@ -286,7 +312,11 @@ class CborEncoding
                         cObj.bigNumEncoding
                     )
                 );
-                return;
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
             }
 
             const n = cObj.num;
@@ -300,11 +330,19 @@ class CborEncoding
                     "please report this issue at https://github.com/HarmonicLabs/cbor/issues"
                 );
                 this.appendCborObjEncoding( CborNegInt.bigNum( n ) );
-                return;
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
             }
             // else
             this.appendTypeAndLength( MajorType.negative , -(n + BigInt( 1 )), cObj.addInfos );
-            return;
+            return cObj.subCborRef = new SubCborRef({
+                _bytes: this._buff, // will be overwritten at top level `.encode` call
+                start: startOffset,
+                end: this.length
+            });
         }
 
         if( cObj instanceof CborBytes )
@@ -315,7 +353,11 @@ class CborEncoding
                 const bs = cObj.chunks;
                 this.appendTypeAndLength( MajorType.bytes , bs.length, cObj.addInfos );
                 this.appendRawBytes( bs );
-                return;
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
             }
             else {
                 const chunks = cObj.chunks;
@@ -326,7 +368,11 @@ class CborEncoding
                     this.appendCborObjEncoding( chunks[i] );
                 }
                 this.appendUInt8( 0b111_11111 ); // break
-                return;
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
             }
         }
 
@@ -338,7 +384,11 @@ class CborEncoding
                 const bs = fromUtf8( cObj.text );
                 this.appendTypeAndLength( MajorType.text , bs.length, cObj.addInfos );
                 this.appendRawBytes( bs );
-                return;
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
             }
             else
             {
@@ -350,9 +400,17 @@ class CborEncoding
                     this.appendCborObjEncoding( chunks[i] );
                 }
                 this.appendUInt8( 0b111_11111 ); // break
-                return;
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
             }
-            return;
+            return cObj.subCborRef = new SubCborRef({
+                _bytes: this._buff, // will be overwritten at top level `.encode` call
+                start: startOffset,
+                end: this.length
+            });
         }
 
         if( cObj instanceof CborArray )
@@ -373,7 +431,11 @@ class CborEncoding
             if( cObj.indefinite )
                 this.appendUInt8( 0xff );
                 
-            return;
+            return cObj.subCborRef = new SubCborRef({
+                _bytes: this._buff, // will be overwritten at top level `.encode` call
+                start: startOffset,
+                end: this.length
+            });
         }
 
         if( cObj instanceof CborMap )
@@ -394,14 +456,22 @@ class CborEncoding
             if( cObj.indefinite )
                 this.appendUInt8( 0xff );
                 
-            return;
+            return cObj.subCborRef = new SubCborRef({
+                _bytes: this._buff, // will be overwritten at top level `.encode` call
+                start: startOffset,
+                end: this.length
+            });
         }
 
         if( cObj instanceof CborTag )
         {
             this.appendTypeAndLength( MajorType.tag, cObj.tag );
             this.appendCborObjEncoding( cObj.data )
-            return;
+            return cObj.subCborRef = new SubCborRef({
+                _bytes: this._buff, // will be overwritten at top level `.encode` call
+                start: startOffset,
+                end: this.length
+            });
         }
 
         if( cObj instanceof CborSimple )
@@ -409,13 +479,41 @@ class CborEncoding
             const simpValue = cObj.simple;
 
             if (simpValue === false)
-                return this.appendUInt8(0xf4); // major type 6 (tag) | 20
+            {
+                this.appendUInt8(0xf4); // major type 6 (tag) | 20
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
+            }
             if (simpValue === true)
-                return this.appendUInt8(0xf5); // major type 6 (tag) | 21
+            {
+                this.appendUInt8(0xf5); // major type 6 (tag) | 21
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
+            }
             if (simpValue === null)
-                return this.appendUInt8(0xf6); // major type 6 (tag) | 22
+            {
+                this.appendUInt8(0xf6); // major type 6 (tag) | 22
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
+            }
             if (simpValue === undefined)
-                return this.appendUInt8(0xf7); // major type 6 (tag) | 23
+            {
+                this.appendUInt8(0xf7); // major type 6 (tag) | 23
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
+            }
 
             if( cObj.numAs === "simple" &&
                 simpValue >= 0 && simpValue <= 255 &&
@@ -423,13 +521,21 @@ class CborEncoding
             )
             {
                 this.appendTypeAndLength( MajorType.float_or_simple, simpValue );
-                return;
+                return cObj.subCborRef = new SubCborRef({
+                    _bytes: this._buff, // will be overwritten at top level `.encode` call
+                    start: startOffset,
+                    end: this.length
+                });
             }
 
             this.appendUInt8(0xfb) // (MajorType.float_or_simple << 5) | 27 (double precidison float)
             this.appendFloat64( simpValue );
 
-            return;
+            return cObj.subCborRef = new SubCborRef({
+                _bytes: this._buff, // will be overwritten at top level `.encode` call
+                start: startOffset,
+                end: this.length
+            });
         }
 
         throw new BaseCborError(
@@ -437,6 +543,10 @@ class CborEncoding
         );
     }
 
+}
+
+export interface ParseOptions {
+    keepRef: boolean
 }
 
 /**
@@ -453,19 +563,27 @@ export class Cbor
         const encoded = new CborEncoding();
 
         encoded.appendCborObjEncoding( cborObj );
+        // point the sub cbor ref to the final bytes
+        overwriteSubCborRefBytes( cborObj, encoded.bytes );
 
         return new CborString( encoded.bytes );
     }
 
-    public static parse( cbor: CborString | Uint8Array | string ): CborObj
+    public static parse(
+        cbor: CborString | Uint8Array | string,
+        parseOpts: ParseOptions = { keepRef: false }
+    ): CborObj
     {
-        return Cbor.parseWithOffset( cbor ).parsed;
+        return Cbor.parseWithOffset( cbor, parseOpts ).parsed;
     }
-    public static parseWithOffset( cbor: CborString | Uint8Array | string ): { parsed: CborObj, offset: number }
+    public static parseWithOffset( 
+        cbor: CborString | Uint8Array | string,
+        parseOpts: ParseOptions = { keepRef: false }
+    ): { parsed: CborObj, offset: number }
     {
         if( typeof cbor === "string" ) cbor = fromHex( cbor )
         assert(
-            ( cbor instanceof Uint8Array ) || CborString.isStrictInstance( cbor ),
+            ( cbor instanceof Uint8Array ) || cbor instanceof CborString,
             "in 'Cbor.parse' expected an instance of 'CborString' or a 'Uint8Array' as input; got: " + cbor
         );
         
@@ -473,10 +591,22 @@ export class Cbor
             cbor.toBuffer() :
             cbor;
 
+        const keepRef = Boolean( parseOpts.keepRef );
+
         /**
          * number of bytes red
          * */
         let offset: number = 0;
+
+        const getSubCborRef: (startOffset: number) => SubCborRef | undefined = (
+            keepRef ?
+            ( startOffset: number ) => new SubCborRef({
+                _bytes: bytes,
+                start: startOffset,
+                end: offset
+            }) 
+            : ( _: number ) => undefined
+        );
 
         function incrementOffsetBy( l: number ): void
         {
@@ -647,6 +777,7 @@ export class Cbor
 
         function parseCborObj(): CborObj
         {
+            const startOffset = offset;
             const headerByte = getUInt8();
             const major : MajorType = headerByte >> 5;
             const addInfos = headerByte & 0b000_11111;
@@ -669,11 +800,20 @@ export class Cbor
 
             switch( major )
             {
-                case MajorType.unsigned: return new CborUInt( length, addInfos );
+                case MajorType.unsigned: {
+                    return new CborUInt(
+                        length,
+                        addInfos,
+                        undefined, // bigNumEncoding
+                        getSubCborRef( startOffset )
+                    );
+                }
                 case MajorType.negative: {
                     return new CborNegInt(
                         -BigInt( 1 ) -length,
-                        addInfos
+                        addInfos,
+                        undefined, // bigNumEncoding
+                        getSubCborRef( startOffset )
                     );
                 }
                 case MajorType.bytes: {
@@ -699,14 +839,16 @@ export class Cbor
     
                         return new CborBytes(
                             chunks,
-                            addInfos
+                            addInfos,
+                            getSubCborRef( startOffset )
                         );
                     }
                     
                     // definite length
                     return new CborBytes(
                         getBytesOfLength( Number( length ) ),
-                        addInfos
+                        addInfos,
+                        getSubCborRef( startOffset )
                     );
                 }
                 case MajorType.text: {
@@ -729,10 +871,18 @@ export class Cbor
                             chunks.push( elem );
                         }
 
-                        return new CborText( chunks, addInfos );
+                        return new CborText( 
+                            chunks,
+                            addInfos,
+                            getSubCborRef( startOffset )
+                        );
                     }
 
-                    return new CborText( getTextOfLength( Number( length ) ), addInfos );
+                    return new CborText(
+                        getTextOfLength( Number( length ) ),
+                        addInfos,
+                        getSubCborRef( startOffset )
+                    );
                 }
                 case MajorType.array: {
                     let arrOfCbors: CborObj[];
@@ -753,7 +903,11 @@ export class Cbor
                         }
                     }
 
-                    return new CborArray( arrOfCbors, { indefinite: length < 0, addInfos } );
+                    return new CborArray( 
+                        arrOfCbors,
+                        { indefinite: length < 0, addInfos },
+                        getSubCborRef( startOffset )
+                    );
                 }
                 case MajorType.map: {
                     let entries: CborMapEntry[];
@@ -781,7 +935,11 @@ export class Cbor
                         }
                     }
 
-                    return new CborMap( entries, { indefinite: length < 0, addInfos } );
+                    return new CborMap(
+                        entries,
+                        { indefinite: length < 0, addInfos },
+                        getSubCborRef( startOffset )
+                    );
                 }
                 case MajorType.tag: {
                     const l = Number( length );
@@ -790,27 +948,50 @@ export class Cbor
                     if( l === 2 && data instanceof CborBytes )
                     {
                         return CborUInt.bigNum(
-                            data
+                            data,
+                            getSubCborRef( startOffset )
                         );
                     }
                     // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
                     else if( l === 3 && data instanceof CborBytes )
                     {
                         return CborNegInt.bigNum(
-                            data
+                            data,
+                            getSubCborRef( startOffset )
                         );
                     }
                     // else just tag
                     return new CborTag( l, data );
                 }
-                case MajorType.float_or_simple:
-                    
+                case MajorType.float_or_simple: {
                     const nLen = Number( length );
 
-                    if( nLen === 20 ) return new CborSimple( false );       // 0xf4
-                    if( nLen === 21 ) return new CborSimple( true );        // 0xf5
-                    if( nLen === 22 ) return new CborSimple( null );        // 0xf6
-                    if( nLen === 23 ) return new CborSimple( undefined );   // 0xf7
+                    const subCborRef = getSubCborRef( startOffset );
+
+                    if( nLen === 20 )
+                        return new CborSimple(
+                            false,
+                            undefined,
+                            subCborRef
+                        );       // 0xf4
+                    if( nLen === 21 )
+                        return new CborSimple(
+                            true,
+                            undefined,
+                            subCborRef
+                        );        // 0xf5
+                    if( nLen === 22 )
+                        return new CborSimple(
+                            null,
+                            undefined,
+                            subCborRef
+                        );        // 0xf6
+                    if( nLen === 23 )
+                        return new CborSimple(
+                            undefined,
+                            undefined,
+                            subCborRef
+                        );   // 0xf7
 
                     // floats handled at the beginning of the function
                     // since length isn't required
@@ -818,7 +999,7 @@ export class Cbor
                     throw new BaseCborError(
                         "unrecognized simple value"
                     );
-
+                }
                 default:
                     throw new BaseCborError(
                         "unrecognized majorType: " + major

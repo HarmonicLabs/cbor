@@ -1,7 +1,8 @@
+import { SubCborRef } from "../../SubCborRef";
 
 export interface ICborObj {
-    /** 5 bit unsigne integer */
+    /** 5 bit unsigned integer */
     addInfos: number;
-    /** bytes immediately following the header, usually payload length */
-    // followingHeaderBytes: Uint8Array | undefined;
+    /** reference to a buffer corresponding to the parse (or to encode) cbor object */
+    subCborRef?: SubCborRef | undefined
 }

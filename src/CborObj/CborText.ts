@@ -4,6 +4,7 @@ import { assert } from "../utils/assert";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { ICborObj } from "./interfaces/ICborObj";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
+import { SubCborRef } from "../SubCborRef";
 
 export type RawCborText = {
     text: string
@@ -43,6 +44,7 @@ export class CborText
     constructor(
         text: string | CborText[],
         addInfos?: number,
+        public subCborRef?: SubCborRef
     )
     {
         this.chunks = text;
@@ -58,6 +60,10 @@ export class CborText
 
     clone(): CborText
     {
-        return new CborText( this.text );
+        return new CborText(
+            typeof this.chunks === "string" ? this.chunks : this.chunks.map( chunk => chunk.clone() ),
+            this.addInfos,
+            this.subCborRef?.clone()
+        );
     }
 }

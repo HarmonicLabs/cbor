@@ -2,6 +2,7 @@ import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
 import { assert } from "../utils/assert";
 import { ToRawObj } from "./interfaces/ToRawObj";
+import { SubCborRef } from "../SubCborRef";
 
 type SimpleValue = boolean | undefined | null | number;
 
@@ -41,7 +42,11 @@ export class CborSimple
     readonly simple: SimpleValue;
     readonly numAs: SimpleNumAs;
 
-    constructor( simple: SimpleValue, interpretNumAs?: SimpleNumAs )
+    constructor(
+        simple: SimpleValue,
+        interpretNumAs?: SimpleNumAs,
+        public subCborRef?: SubCborRef
+    )
     {
         if(
             interpretNumAs === undefined     &&
@@ -84,7 +89,11 @@ export class CborSimple
 
     clone(): CborSimple
     {
-        return new CborSimple( this.simple, this.numAs );
+        return new CborSimple(
+            this.simple,
+            this.numAs,
+            this.subCborRef?.clone()
+        );
     }
 
     static get null(): CborSimple

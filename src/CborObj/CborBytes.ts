@@ -3,6 +3,7 @@ import { ToRawObj } from "./interfaces/ToRawObj";
 import { Cloneable } from "../utils/Cloneable";
 import { ICborObj } from "./interfaces/ICborObj";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
+import { SubCborRef } from "../SubCborRef";
 
 export type RawCborBytes = {
     bytes: Uint8Array
@@ -56,6 +57,7 @@ export class CborBytes
     constructor(
         bytes: Uint8Array | CborBytes[],
         addInfos?: number,
+        public subCborRef?: SubCborRef
     )
     {
         this.chunks = bytes;
@@ -72,24 +74,9 @@ export class CborBytes
     clone(): CborBytes
     {
         return new CborBytes(
-            this.chunks,
-            this.addInfos
+            this.chunks instanceof Uint8Array ? this.chunks : this.chunks.map( ch => ch.clone() ),
+            this.addInfos,
+            this.subCborRef?.clone()
         );
     }
-}
-
-function concatBytes( fst: Uint8Array, rest: Uint8Array[] ): Uint8Array
-{
-    // pre allocate resulting byte
-    const result = new Uint8Array( rest.reduce<number>( (a,b) => a + b.length, fst.length ) );
-    let offset = fst.length;
-    result.set( fst, 0 ); // copy first
-    let elem: Uint8Array;
-    for( let i = 0; i < rest.length; i++ )
-    {
-        elem = rest[i];
-        result.set( elem, offset ); // copy ith
-        offset += elem.length;
-    }
-    return result;
 }

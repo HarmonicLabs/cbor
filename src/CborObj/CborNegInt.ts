@@ -7,6 +7,7 @@ import { CborBytes } from "./CborBytes";
 import { fromHex, toHex } from "@harmoniclabs/uint8array-utils";
 import { minBigInt } from "../constants/max";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
+import { SubCborRef } from "../SubCborRef";
 
 export type RawCborNegInt = {
     neg: bigint
@@ -77,7 +78,8 @@ export class CborNegInt
     constructor(
         neg: number | bigint,
         addInfos?: number,
-        bigNumEncoding?: CborBytes
+        bigNumEncoding?: CborBytes,
+        public subCborRef?: SubCborRef
     )
     {
         if( typeof neg === "number" ) neg = BigInt( neg );
@@ -92,7 +94,10 @@ export class CborNegInt
             this.bigNumEncoding = undefined;
     }
 
-    static bigNum( encoding: CborBytes | bigint | number ): CborNegInt
+    static bigNum(
+        encoding: CborBytes | bigint | number,
+        subCborRef?: SubCborRef
+    ): CborNegInt
     {
         let n: bigint | undefined = undefined;
         if(!( encoding instanceof CborBytes ))
@@ -105,7 +110,7 @@ export class CborNegInt
         }
         else { n = BigInt(-1) - BigInt( "0x" + toHex( encoding.bytes ) ); }
         
-        return new CborNegInt( n, 0, encoding );
+        return new CborNegInt( n, 0, encoding, subCborRef );
     }
 
     toRawObj(): RawCborNegInt
@@ -117,6 +122,11 @@ export class CborNegInt
 
     clone(): CborNegInt
     {
-        return new CborNegInt( this.num );
+        return new CborNegInt(
+            this.num,
+            this.addInfos,
+            this.bigNumEncoding?.clone(),
+            this.subCborRef?.clone()
+        );
     }
 }

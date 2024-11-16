@@ -6,3 +6,4 @@ export * from "./CborString";
 export * from "./errors";
 export * from "./extra";
 export * from "./interfaces";
+export * from "./SubCborRef";

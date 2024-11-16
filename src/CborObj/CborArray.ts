@@ -5,6 +5,7 @@ import { ToRawObj } from "./interfaces/ToRawObj";
 import { assert } from "../utils/assert";
 import { ICborObj } from "./interfaces/ICborObj";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
+import { SubCborRef } from "../SubCborRef";
 
 export interface CborArrayOptions {
     indefinite?: boolean,
@@ -42,7 +43,11 @@ export class CborArray
 
     addInfos: number;
     
-    constructor( array: CborObj[], options?: CborArrayOptions )
+    constructor(
+        array: CborObj[],
+        options?: CborArrayOptions,
+        public subCborRef?: SubCborRef
+    )
     {
         assert(
             Array.isArray( array ) &&
@@ -69,8 +74,9 @@ export class CborArray
     clone(): CborArray
     {
         return new CborArray(
-            this.array,
-            { indefinite: this.indefinite }
+            this.array.map( elem => elem.clone() ),
+            { indefinite: this.indefinite, addInfos: this.addInfos },
+            this.subCborRef?.clone()
         );
     }
 }

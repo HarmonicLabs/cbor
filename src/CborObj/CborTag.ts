@@ -4,6 +4,7 @@ import { assert } from "../utils/assert";
 import { canBeUInteger } from "../utils/ints";
 import { CborObj, cborObjFromRaw, isCborObj, isRawCborObj, RawCborObj } from "./CborObj"
 import { ToRawObj } from "./interfaces/ToRawObj"
+import { SubCborRef } from "../SubCborRef";
 
 export type RawCborTag = {
     tag: number | bigint,
@@ -31,7 +32,11 @@ export class CborTag
 
     readonly data: CborObj
 
-    constructor( tag: number | bigint , data: CborObj )
+    constructor(
+        tag: number | bigint,
+        data: CborObj,
+        public subCborRef?: SubCborRef
+    )
     {
         if( typeof tag === "number" ) tag = BigInt( tag );
 
@@ -59,6 +64,10 @@ export class CborTag
 
     clone(): CborTag
     {
-        return new CborTag( this.tag, this.data.clone() )
+        return new CborTag(
+            this.tag,
+            this.data.clone(),
+            this.subCborRef?.clone()
+        );
     }
 }

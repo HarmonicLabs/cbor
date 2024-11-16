@@ -4,6 +4,7 @@ import { ToRawObj } from "./interfaces/ToRawObj";
 import { ICborObj } from "./interfaces/ICborObj";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 import { assert } from "../utils/assert";
+import { SubCborRef } from "../SubCborRef";
 
 export interface CborMapOptions {
     indefinite?: boolean,
@@ -63,7 +64,11 @@ export class CborMap
 
     addInfos: number;
 
-    constructor( map: CborMapEntry[], options?: CborMapOptions )
+    constructor(
+        map: CborMapEntry[],
+        options?: CborMapOptions,
+        public subCborRef?: SubCborRef
+    )
     {
         assert(
             Array.isArray( map ) &&
@@ -103,7 +108,8 @@ export class CborMap
                 k: entry.k.clone(),
                 v: entry.v.clone()
             })),
-            { indefinite: this.indefinite }
+            { indefinite: this.indefinite, addInfos: this.addInfos },
+            this.subCborRef?.clone()
         );
     }
 }
