@@ -549,6 +549,8 @@ export interface ParseOptions {
     keepRef: boolean
 }
 
+export const defaultParseOptions: ParseOptions = Object.freeze({ keepRef: true });
+
 /**
  * static class that allows CBOR encoding and decoding
  * 
@@ -563,22 +565,27 @@ export class Cbor
         const encoded = new CborEncoding();
 
         encoded.appendCborObjEncoding( cborObj );
-        // point the sub cbor ref to the final bytes
-        overwriteSubCborRefBytes( cborObj, encoded.bytes );
 
-        return new CborString( encoded.bytes );
+        // .bytes is a getter, call once
+        const bytes = encoded.bytes;
+
+        // point the sub cbor refs to the final bytes
+        // (forget intermediate results)
+        overwriteSubCborRefBytes( cborObj, bytes );
+
+        return new CborString( bytes );
     }
 
     public static parse(
         cbor: CborString | Uint8Array | string,
-        parseOpts: ParseOptions = { keepRef: false }
+        parseOpts: ParseOptions = defaultParseOptions
     ): CborObj
     {
         return Cbor.parseWithOffset( cbor, parseOpts ).parsed;
     }
     public static parseWithOffset( 
         cbor: CborString | Uint8Array | string,
-        parseOpts: ParseOptions = { keepRef: false }
+        parseOpts: ParseOptions = defaultParseOptions
     ): { parsed: CborObj, offset: number }
     {
         if( typeof cbor === "string" ) cbor = fromHex( cbor )
@@ -591,7 +598,7 @@ export class Cbor
             cbor.toBuffer() :
             cbor;
 
-        const keepRef = Boolean( parseOpts.keepRef );
+        const keepRef = Boolean( parseOpts.keepRef ?? defaultParseOptions.keepRef );
 
         /**
          * number of bytes red
@@ -754,6 +761,7 @@ export class Cbor
             throw new BaseCborError( "Invalid length encoding while parsing CBOR" );
         }
 
+        /*
         function getIndefiniteElemLengthOfType( majorType: MajorType ): bigint
         {
             const headerByte = getUInt8();
@@ -768,6 +776,7 @@ export class Cbor
 
             return elemLength;
         }
+        //*/
 
         function getTextOfLength( l: number ): string
         {
