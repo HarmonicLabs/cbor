@@ -19,6 +19,10 @@ export class SubCborRef extends CborString
     constructor({ _bytes, start, end }: ISubCborRef)
     {
         super( _bytes );
+        // super might have cloned `_bytes`, but in `SubCborRef` we want to keep the reference
+        this._bytes = _bytes;
+        this.start = start;
+        this.end = end;
     }
 
     override toString(): string
