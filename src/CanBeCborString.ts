@@ -9,3 +9,12 @@ export function forceCborString( cStr: CanBeCborString ): CborString
         cStr instanceof ByteString ? cStr.toBuffer() : cStr
     )
 }
+
+export function canBeCborString( stuff: any ): stuff is CanBeCborString
+{
+    return (
+        typeof stuff === "string" ||
+        stuff instanceof Uint8Array ||
+        stuff instanceof ByteString
+    );
+}
