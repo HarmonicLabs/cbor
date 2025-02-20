@@ -18,7 +18,17 @@ export interface ToCborString {
     toCbor: () => CborString
 }
 
-export interface ToCbor extends ToCborObj, ToCborString
+export interface ToCborBytes {
+    /**
+     * usually same result as `this.toCbor().toBytes()`
+     * 
+     * but if `this` remembers a `SubCborRef` object,
+     * it can be uset to shortcut the process and just return the bytes
+    **/
+    toCborBytes: () => Uint8Array
+}
+
+export interface ToCbor extends ToCborObj, ToCborString, ToCborBytes
 {
     /**
      * strictly require `SubCborRef` property to classes that want to implement `ToCbor`
