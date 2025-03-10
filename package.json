@@ -1,6 +1,6 @@
 {
   "name": "@harmoniclabs/cbor",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "description": "cbor library for easy cbor parsing, manipulation and conversion",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

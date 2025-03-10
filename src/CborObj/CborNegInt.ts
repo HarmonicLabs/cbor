@@ -99,16 +99,18 @@ export class CborNegInt
         subCborRef?: SubCborRef
     ): CborNegInt
     {
+        if( typeof encoding === "number" ) encoding = BigInt( encoding );
+        if( typeof encoding === "bigint" && encoding >= 0 ) encoding = -encoding; // ensure negative number
         let n: bigint | undefined = undefined;
         if(!( encoding instanceof CborBytes ))
         {
-            encoding = BigInt(-1) - BigInt(encoding);
+            encoding = BigInt(-1) - BigInt(encoding); // translate to positive (so we can hex it)
             n = encoding;
-            let hex = encoding.toString(16);
-            if( (hex.length % 2) === 1 ) hex = "0" + hex;
-            encoding = new CborBytes( fromHex( hex ) );
+            let hex = encoding.toString(16); // hex
+            if( (hex.length % 2) === 1 ) hex = "0" + hex; // even length
+            encoding = new CborBytes( fromHex( hex ) ); // bytes
         }
-        else { n = BigInt(-1) - BigInt( "0x" + toHex( encoding.bytes ) ); }
+        else { n = BigInt(-1) - BigInt( "0x" + toHex( encoding.bytes ) ); } // was bytes
         
         return new CborNegInt( n, 0, encoding, subCborRef );
     }
