@@ -104,8 +104,8 @@ export class CborNegInt
         let n: bigint | undefined = undefined;
         if(!( encoding instanceof CborBytes ))
         {
-            encoding = BigInt(-1) - BigInt(encoding); // translate to positive (so we can hex it)
-            n = encoding;
+            n = encoding; // remember negative number
+            encoding = BigInt(-1) - BigInt(encoding); // translate to positive so we can encode as bytes
             let hex = encoding.toString(16); // hex
             if( (hex.length % 2) === 1 ) hex = "0" + hex; // even length
             encoding = new CborBytes( fromHex( hex ) ); // bytes

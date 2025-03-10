@@ -101,4 +101,19 @@ describe("neg int", () => {
         ).toEqual( str );
     });
 
+    describe("bigNum", () => {
+
+        function testN( n: number | bigint )
+        {
+            test(n.toString(), () => {
+                expect(() => CborNegInt.bigNum( n )).not.toThrow();
+            });
+        }
+
+        testN( -1 );
+        testN( -1n );
+        testN( -0x10000000000000000n );
+        testN( -0x10000000000000000000000000000000n );
+    })
+
 });
