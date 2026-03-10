@@ -1,9 +1,9 @@
-import { defineReadOnlyProperty, isObject } from "@harmoniclabs/obj-utils";
+import { isObject } from "@harmoniclabs/obj-utils";
 import { CborObj, cborObjFromRaw, isCborObj, isRawCborObj, RawCborObj } from ".";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { ICborObj } from "./interfaces/ICborObj";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
-import { assert } from "../utils/assert";
+
 import { SubCborRef } from "../SubCborRef";
 
 export interface CborMapOptions {
@@ -70,13 +70,14 @@ export class CborMap
         public subCborRef?: SubCborRef
     )
     {
-        assert(
+        if(!(
             Array.isArray( map ) &&
             map.every( entry => (
                 isObject(  entry ) &&
                 isCborObj( entry.k ) &&
                 isCborObj( entry.v )
-            )),
+            ))
+        )) throw new Error(
             "in 'CborMap' constructor: invalid input; got: " + map
         );
 

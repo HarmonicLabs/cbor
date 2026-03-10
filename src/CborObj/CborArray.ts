@@ -1,8 +1,7 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
 import { CborObj, cborObjFromRaw, isCborObj, isRawCborObj, RawCborObj } from "./CborObj";
 import { ToRawObj } from "./interfaces/ToRawObj";
-import { assert } from "../utils/assert";
+
 import { ICborObj } from "./interfaces/ICborObj";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 import { SubCborRef } from "../SubCborRef";
@@ -49,9 +48,10 @@ export class CborArray
         public subCborRef?: SubCborRef
     )
     {
-        assert(
+        if(!(
             Array.isArray( array ) &&
-            array.every( isCborObj ),
+            array.every( isCborObj )
+        )) throw new Error(
             "in 'CborArray' constructor: invalid input; got: " + array
         );
 

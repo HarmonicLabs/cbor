@@ -1,5 +1,4 @@
 
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { CborObj } from "../CborObj/CborObj";
 import { CborArray } from "../CborObj/CborArray";
 import { CborTag } from "../CborObj/CborTag";
@@ -24,8 +23,8 @@ export class CborPositiveRational extends CborTag
             ])
         );
 
-        defineReadOnlyProperty( this, "num", _num )
-        defineReadOnlyProperty( this, "den", _den )
+        this.num = _num;
+        this.den = _den;
     }
 
     static fromCborObjOrUndef( cObj: CborObj | undefined ): CborPositiveRational | undefined

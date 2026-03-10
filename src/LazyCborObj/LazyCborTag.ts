@@ -1,4 +1,3 @@
-import { assert } from "../utils/assert";
 import { LazyCborObj, isLazyCborObj } from "./LazyCborObj";
 
 export class LazyCborTag
@@ -13,9 +12,10 @@ export class LazyCborTag
             tag = BigInt( tag );
         }
 
-        assert(
+        if(!(
             typeof tag === "bigint" &&
-            isLazyCborObj( data ),
+            isLazyCborObj( data )
+        )) throw new Error(
             "using direct value constructor; either 'tag' is not a number or 'data' is not 'LazyCborObj'"
         );
 

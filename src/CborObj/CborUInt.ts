@@ -1,6 +1,6 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
+import {  } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
-import { assert } from "../utils/assert";
+
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { ICborObj } from "./interfaces/ICborObj";
 import { CborBytes } from "./CborBytes";
@@ -43,8 +43,9 @@ export class CborUInt
     }
     set num( uint: bigint | number )
     {
-        assert(
-            uint >= BigInt( 0 ),
+        if(!(
+            uint >= BigInt( 0 )
+        )) throw new Error(
             "uint CBOR numbers must be greater or equal 0; got: " + uint
         );
         uint = BigInt( uint );

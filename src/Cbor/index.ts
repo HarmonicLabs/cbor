@@ -1,5 +1,4 @@
 import type { CborObj } from "../CborObj";
-import { CborString } from "../CborString";
 import { isCborObj } from "../CborObj";
 import { isMajorTypeTag, MajorType } from "./Constants";
 import { CborBytes } from "../CborObj/CborBytes";
@@ -12,7 +11,7 @@ import { CborUInt } from "../CborObj/CborUInt";
 import { CborNegInt } from "../CborObj/CborNegInt";
 import { fromHex, fromUtf8, isUint8Array, readBigUInt64BE, readFloat32BE, readFloat64BE, readUint16BE, readUInt16BE, readUInt32BE, readUInt8, toHex, toUtf8, writeBigUInt64BE, writeFloat64BE, writeUInt16BE, writeUInt32BE, writeUInt8 } from "@harmoniclabs/uint8array-utils";
 import { BaseCborError } from "../errors/BaseCborError";
-import { assert } from "../utils/assert";
+
 import { LazyCborObj } from "../LazyCborObj/LazyCborObj";
 import { readCborTypeAndLength } from "../extra";
 import { LazyCborArray } from "../LazyCborObj/LazyCborArray";
@@ -92,9 +91,10 @@ class CborEncoding
 
     appendUInt8( uint8: number ): void
     {
-        assert(
-            uint8 >= 0 && uint8 <= 0b1111_1111 &&
-            uint8 === Math.round( uint8 ),
+        if(!(
+            uint8 >= 0 && uint8 <= 0b1111_1111
+            && uint8 === Math.round( uint8 )
+        )) throw new Error(
             "expected a byte; got: " + uint8
         );
 
@@ -107,9 +107,10 @@ class CborEncoding
 
     appendUInt16( uint16: number ): void
     {
-        assert(
+        if(!(
             uint16 >= 0 && uint16 <= 0b1111_1111_1111_1111 &&
-            uint16 === Math.round( uint16 ),
+            uint16 === Math.round( uint16 )
+        )) throw new Error(
             "expected two bytes; got: " + uint16
         );
 
@@ -122,9 +123,10 @@ class CborEncoding
 
     appendUInt32( uint32: number ): void
     {
-        assert(
+        if(!(
             uint32 >= 0 && uint32 <= 0b11111111_11111111_11111111_11111111 &&
-            uint32 === Math.round( uint32 ),
+            uint32 === Math.round( uint32 )
+        )) throw new Error(
             "expected 4 bytes; got: " + uint32
         );
 
@@ -137,9 +139,10 @@ class CborEncoding
 
     appendUInt64( uint64: bigint ): void
     {
-        assert(
+        if(!(
             typeof uint64 === "bigint" &&
-            uint64 >= BigInt( 0 ) && uint64 <= BigInt( "0b" + "11111111".repeat( 8 ) ),
+            uint64 >= BigInt( 0 ) && uint64 <= BigInt( "0b" + "11111111".repeat( 8 ) )
+        )) throw new Error(
             "expected 8 bytes; got: " + uint64
         );
 
@@ -152,8 +155,9 @@ class CborEncoding
 
     appendFloat64( float64: number ): void
     {
-        assert(
-            typeof float64 === "number",
+        if(!(
+            typeof float64 === "number"
+        )) throw new Error(
             "expected 8 bytes; got: " + float64
         );
 
@@ -166,14 +170,16 @@ class CborEncoding
 
     appendTypeAndLength( cborType: MajorType, length: number | bigint, addInfos?: number ): void
     {
-        assert(
-            isMajorTypeTag( cborType ),
+        if(!(
+            isMajorTypeTag( cborType )
+        )) throw new Error(
             "passed tag is not a valid major cbor type"
         );
 
-        assert(
+        if(!(
             (typeof length === "number" || typeof length === "bigint") &&
-            length >= 0,
+            length >= 0
+        )) throw new Error(
             "invalid length"
         );
 
@@ -243,8 +249,9 @@ class CborEncoding
 
     appendCborObjEncoding( cObj: CborObj ): SubCborRef
     {
-        assert(
-            isCborObj( cObj ),
+        if(!(
+            isCborObj( cObj )
+        )) throw new Error(
             "expected 'CborObj' strict instance; got: " + cObj
         );
         
@@ -252,8 +259,9 @@ class CborEncoding
 
         if( cObj instanceof CborUInt )
         {
-            assert(
-                cObj.num >= BigInt( 0 ),
+            if(!(
+                cObj.num >= BigInt( 0 )
+            )) throw new Error(
                 "encoding invalid unsigned integer as CBOR"
             );
             // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
@@ -300,8 +308,9 @@ class CborEncoding
 
         if( cObj instanceof CborNegInt )
         {
-            assert(
-                cObj.num < BigInt( 0 ),
+            if(!(
+                cObj.num < BigInt( 0 )
+            )) throw new Error(
                 "encoding invalid negative integer as CBOR"
             );
             if( cObj.bigNumEncoding instanceof CborBytes )
@@ -560,7 +569,7 @@ export class Cbor
 {
     private constructor() {}; // static class, working as namespace
 
-    public static encode( cborObj: CborObj ): CborString
+    public static encode( cborObj: CborObj ): Uint8Array
     {
         const encoded = new CborEncoding();
 
@@ -573,30 +582,28 @@ export class Cbor
         // (forget intermediate results)
         overwriteSubCborRefBytes( cborObj, bytes );
 
-        return new CborString( bytes );
+        return bytes;
     }
 
     public static parse(
-        cbor: CborString | Uint8Array | string,
+        cbor: Uint8Array | string,
         parseOpts: ParseOptions = defaultParseOptions
     ): CborObj
     {
         return Cbor.parseWithOffset( cbor, parseOpts ).parsed;
     }
     public static parseWithOffset( 
-        cbor: CborString | Uint8Array | string,
+        cbor: Uint8Array | string,
         parseOpts: ParseOptions = defaultParseOptions
     ): { parsed: CborObj, offset: number }
     {
         if( typeof cbor === "string" ) cbor = fromHex( cbor )
-        assert(
-            ( cbor instanceof Uint8Array ) || cbor instanceof CborString,
-            "in 'Cbor.parse' expected an instance of 'CborString' or a 'Uint8Array' as input; got: " + cbor
+        if(!( cbor instanceof Uint8Array ) )
+        throw new Error(
+            "in 'Cbor.parse' expected an instance of 'Uint8Array' as input; got: " + cbor
         );
         
-        const bytes: Uint8Array = cbor instanceof CborString ?
-            cbor.toBuffer() :
-            cbor;
+        const bytes: Uint8Array = cbor;
 
         const keepRef = Boolean( parseOpts.keepRef ?? defaultParseOptions.keepRef );
 
@@ -1018,21 +1025,19 @@ export class Cbor
 
         return { parsed: parseCborObj(), offset };
     }
-    public static parseLazy( cbor: CborString | Uint8Array | string ): LazyCborObj
+    public static parseLazy( cbor: Uint8Array | string ): LazyCborObj
     {
         return Cbor.parseLazyWithOffset( cbor ).parsed;
     }
-    public static parseLazyWithOffset( cbor: CborString | Uint8Array | string ): { parsed: LazyCborObj, offset: number }
+    public static parseLazyWithOffset( cbor: Uint8Array | string ): { parsed: LazyCborObj, offset: number }
     {
         if( typeof cbor === "string" ) cbor = fromHex( cbor )
-        assert(
-            ( cbor instanceof Uint8Array ) || CborString.isStrictInstance( cbor ),
-            "in 'Cbor.parse' expected an instance of 'CborString' or a 'Uint8Array' as input; got: " + cbor
+            if(!( cbor instanceof Uint8Array ) )
+        throw new Error(
+            "in 'Cbor.parseLazyWithOffset' expected an instance of or a 'Uint8Array' as input; got: " + cbor
         );
         
-        const bytes: Uint8Array = cbor instanceof CborString ?
-            cbor.toBuffer() :
-            cbor;
+        const bytes: Uint8Array = cbor;
 
         /**
          * number of bytes red

@@ -1,4 +1,3 @@
-import type { CborString } from "../CborString";
 import { CborObj } from "../CborObj/CborObj";
 import { SubCborRef } from "../SubCborRef";
 
@@ -7,7 +6,7 @@ import { SubCborRef } from "../SubCborRef";
  */
 export interface CBORSerializable 
 {
-    toCBOR: () => CborString
+    toCBOR: () => Uint8Array
 }
 
 export interface ToCborObj {
@@ -15,7 +14,7 @@ export interface ToCborObj {
 }
 
 export interface ToCborString {
-    toCbor: () => CborString
+    toCbor: () => Uint8Array
 }
 
 export interface ToCborBytes {
@@ -40,6 +39,6 @@ export interface ToCbor extends ToCborObj, ToCborString, ToCborBytes
 
 export interface FromCbor<T>
 {
-    fromCbor( cbor: CborString ): T,
+    fromCbor( cbor: Uint8Array | string ): T,
     fromCborObj( cbor: CborObj ): T
 }

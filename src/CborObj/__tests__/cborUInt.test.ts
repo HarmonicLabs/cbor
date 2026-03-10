@@ -15,8 +15,8 @@ describe("uint", () => {
         expect( parsed.num ).toEqual( BigInt(1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
 
     });
 
@@ -29,8 +29,8 @@ describe("uint", () => {
         expect( parsed.num ).toEqual( BigInt(1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
 
     });
 
@@ -43,8 +43,8 @@ describe("uint", () => {
         expect( parsed.num ).toEqual( BigInt(1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
 
     });
 
@@ -57,8 +57,8 @@ describe("uint", () => {
         expect( parsed.num ).toEqual( BigInt(1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
 
     });
 
@@ -71,8 +71,8 @@ describe("uint", () => {
         expect( parsed.num ).toEqual( BigInt(1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
         
     });
 
@@ -86,8 +86,8 @@ describe("uint", () => {
         expect( parsed.num ).toEqual( BigInt(1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
     });
 
     test("remembers 10 byte bignum max", () => {
@@ -100,8 +100,8 @@ describe("uint", () => {
         expect( parsed.num ).toEqual( BigInt("0xffffffffffffffffffff") );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
     });
 
 });

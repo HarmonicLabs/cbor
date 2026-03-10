@@ -1,7 +1,6 @@
 import { Cbor } from ".."
-import { fromAscii } from "@harmoniclabs/uint8array-utils";
+import { fromAscii, fromHex } from "@harmoniclabs/uint8array-utils";
 import { cborObjFromRaw } from "../../CborObj"
-import { CborString } from "../../CborString"
 
 
 describe( "Cbor.encode", () => {
@@ -12,19 +11,19 @@ describe( "Cbor.encode", () => {
             cborObjFromRaw({
                 uint: BigInt( 0 )
             })
-        ) ).toEqual( new CborString( "00" ) );
+        ) ).toEqual( fromHex( "00" ) );
 
         expect( Cbor.encode(
             cborObjFromRaw({
                 uint: BigInt( 1 )
             })
-        ) ).toEqual( new CborString( "01" ) );
+        ) ).toEqual( fromHex( "01" ) );
 
         expect( Cbor.encode(
             cborObjFromRaw({
                 uint: BigInt( Number.MAX_SAFE_INTEGER )
             })
-        ) ).toEqual( new CborString( "1b001fffffffffffff" ) );
+        ) ).toEqual( fromHex( "1b001fffffffffffff" ) );
 
     });
 
@@ -34,19 +33,19 @@ describe( "Cbor.encode", () => {
             cborObjFromRaw({
                 neg: BigInt( -1 )
             })
-        ) ).toEqual( new CborString( "20" ) );
+        ) ).toEqual( fromHex( "20" ) );
 
         expect( Cbor.encode(
             cborObjFromRaw({
                 neg: BigInt( -5 )
             })
-        ) ).toEqual( new CborString( "24" ) );
+        ) ).toEqual( fromHex( "24" ) );
         
         expect( Cbor.encode(
             cborObjFromRaw({
                 neg: BigInt( -Number.MAX_SAFE_INTEGER )
             })
-        ) ).toEqual( new CborString( "3b001ffffffffffffe" ) );
+        ) ).toEqual( fromHex( "3b001ffffffffffffe" ) );
     });
     
     test("text", () => {
@@ -55,7 +54,7 @@ describe( "Cbor.encode", () => {
             cborObjFromRaw({
                 text: "ciaone"
             })
-        ) ).toEqual( new CborString( "666369616F6E65" ) );
+        ) ).toEqual( fromHex( "666369616F6E65" ) );
 
     });
     
@@ -65,7 +64,7 @@ describe( "Cbor.encode", () => {
             cborObjFromRaw({
                 bytes: fromAscii( "ciaone" )
             })
-        ) ).toEqual( new CborString( "466369616F6E65" ) );
+        ) ).toEqual( fromHex( "466369616F6E65" ) );
 
     });
     
@@ -79,7 +78,7 @@ describe( "Cbor.encode", () => {
                     { uint: BigInt( 3 ) },
                 ]
             })
-        ) ).toEqual( new CborString( "83010203" ) );
+        ) ).toEqual( fromHex( "83010203" ) );
 
     });
 
@@ -103,7 +102,7 @@ describe( "Cbor.encode", () => {
                     }
                 ]
             })
-        ) ).toEqual( new CborString( "A2466369616F6E65676D6F6E646F6E6501820203" ) );
+        ) ).toEqual( fromHex( "A2466369616F6E65676D6F6E646F6E6501820203" ) );
 
     });
 
@@ -114,14 +113,14 @@ describe( "Cbor.encode", () => {
                 tag: 6,
                 data: { array: [] }
             })
-        ) ).toEqual( new CborString( "C680" ) );
+        ) ).toEqual( fromHex( "C680" ) );
 
         expect( Cbor.encode(
             cborObjFromRaw({
                 tag: 6,
                 data: { uint: BigInt( 2 ) }
             })
-        ) ).toEqual( new CborString( "C602" ) );
+        ) ).toEqual( fromHex( "C602" ) );
 
     });
 

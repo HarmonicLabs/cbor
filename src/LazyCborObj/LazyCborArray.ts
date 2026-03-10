@@ -1,5 +1,5 @@
 import { CborArrayOptions } from "../CborObj";
-import { assert } from "../utils/assert";
+
 
 const defaultOpts: Required<CborArrayOptions> = Object.freeze({
     indefinite: false,
@@ -14,9 +14,10 @@ export class LazyCborArray
 
     constructor( array: Uint8Array[], options?: CborArrayOptions )
     {
-        assert(
+        if(!(
             Array.isArray( array ) &&
-            array.every( elem => elem instanceof Uint8Array ),
+            array.every( elem => elem instanceof Uint8Array )
+        )) throw new Error(
             "in 'LazyCborArray' constructor: invalid input; got: " + array
         );
 

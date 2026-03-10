@@ -1,6 +1,5 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
-import { assert } from "../utils/assert";
+
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { ICborObj } from "./interfaces/ICborObj";
 import { CborBytes } from "./CborBytes";
@@ -49,8 +48,9 @@ export class CborNegInt
     }
     set num( neg: bigint | number )
     {
-        assert(
-            neg < 0,
+        if(!(
+            neg < 0
+        )) throw new Error(
             "neg CBOR numbers must be less than 0; got: " + neg
         );
         neg = BigInt( neg );

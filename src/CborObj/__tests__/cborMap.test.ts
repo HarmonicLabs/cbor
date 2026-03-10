@@ -1,3 +1,4 @@
+import { fromHex } from "@harmoniclabs/uint8array-utils";
 import { Cbor } from "../../Cbor";
 import { CborMap } from "../CborMap";
 
@@ -10,8 +11,8 @@ test("0 elem, indefinite", () => {
     expect(parsed.map.length).toBe(0);
 
     expect(
-        Cbor.encode(parsed).toString()
-    ).toEqual(str);
+        Cbor.encode(parsed)
+    ).toEqual(fromHex(str));
 });
 
 test("1 elem, 0 byte header", () => {
@@ -23,8 +24,8 @@ test("1 elem, 0 byte header", () => {
     expect(parsed.map.length).toBe(1);
 
     expect(
-        Cbor.encode(parsed).toString()
-    ).toEqual(str);
+        Cbor.encode(parsed)
+    ).toEqual(fromHex(str));
 });
 
 test("1 elem, 1 byte", () => {
@@ -36,8 +37,8 @@ test("1 elem, 1 byte", () => {
     expect(parsed.map.length).toBe(1);
 
     expect(
-        Cbor.encode(parsed).toString()
-    ).toEqual(str);
+        Cbor.encode(parsed)
+    ).toEqual(fromHex(str));
 });
 
 test("1 elems, 2 byte header", () => {
@@ -49,8 +50,8 @@ test("1 elems, 2 byte header", () => {
     expect(parsed.map.length).toBe(1);
 
     expect(
-        Cbor.encode(parsed).toString()
-    ).toEqual(str);
+        Cbor.encode(parsed)
+    ).toEqual(fromHex(str));
 });
 
 test("1 elems, 4 bytes", () => {
@@ -62,8 +63,8 @@ test("1 elems, 4 bytes", () => {
     expect(parsed.map.length).toBe(1);
 
     expect(
-        Cbor.encode(parsed).toString()
-    ).toEqual(str);
+        Cbor.encode(parsed)
+    ).toEqual(fromHex(str));
 });
 
 test("1 elems, 8 bytes", () => {
@@ -75,6 +76,6 @@ test("1 elems, 8 bytes", () => {
     expect(parsed.map.length).toBe(1);
 
     expect(
-        Cbor.encode(parsed).toString()
-    ).toEqual(str);
+        Cbor.encode(parsed)
+    ).toEqual(fromHex(str));
 });

@@ -1,7 +1,5 @@
 import { toHex } from "@harmoniclabs/uint8array-utils";
-import { CborString } from "./CborString";
 import { Cloneable } from "./utils/Cloneable";
-import { ByteString } from "@harmoniclabs/bytestring";
 
 export interface ISubCborRef {
     _bytes: Uint8Array;
@@ -9,7 +7,7 @@ export interface ISubCborRef {
     end: number;
 }
 
-export class SubCborRef extends CborString
+export class SubCborRef
     implements ISubCborRef, Cloneable<SubCborRef>
 {
     _bytes: Uint8Array;
@@ -18,19 +16,18 @@ export class SubCborRef extends CborString
 
     constructor({ _bytes, start, end }: ISubCborRef)
     {
-        super( _bytes );
         // super might have cloned `_bytes`, but in `SubCborRef` we want to keep the reference
         this._bytes = _bytes;
         this.start = start;
         this.end = end;
     }
 
-    override toString(): string
+    toString(): string
     {
         return toHex( this.toBuffer() )
     }
 
-    override toBuffer(): Uint8Array
+    toBuffer(): Uint8Array
     {
         return Uint8Array.prototype.slice.call( this._bytes, this.start, this.end );    
     }

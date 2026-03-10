@@ -1,6 +1,5 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
-import { assert } from "../utils/assert";
+
 import { canBeUInteger } from "../utils/ints";
 import { CborObj, cborObjFromRaw, isCborObj, isRawCborObj, RawCborObj } from "./CborObj"
 import { ToRawObj } from "./interfaces/ToRawObj"
@@ -40,18 +39,15 @@ export class CborTag
     {
         if( typeof tag === "number" ) tag = BigInt( tag );
 
-        assert(
+        if(!(
             typeof tag === "bigint" &&
-            isCborObj( data ),
+            isCborObj( data )
+        )) throw new Error(
             "using direct value constructor; either 'tag' is not a number or 'data' is missing"
         );
 
-        defineReadOnlyProperty(
-            this, "tag", tag
-        );
-        defineReadOnlyProperty(
-            this, "data", data
-        )
+        this.tag = tag;
+        this.data = data;
     }
 
     toRawObj(): RawCborTag

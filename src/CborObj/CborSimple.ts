@@ -1,6 +1,5 @@
-import { defineReadOnlyProperty } from "@harmoniclabs/obj-utils";
 import { Cloneable } from "../utils/Cloneable";
-import { assert } from "../utils/assert";
+
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { SubCborRef } from "../SubCborRef";
 
@@ -59,25 +58,23 @@ export class CborSimple
 
         if( interpretNumAs === "simple" )
         {
-            assert(
+            if(!(
                 typeof simple === "number" &&
                 simple >= 0 && simple <= 255 &&
-                simple === Math.round( simple ),
+                simple === Math.round( simple )
+            )) throw new Error(
                 "invalid simple value"
             );
         }
 
-        assert(
-            isSimpleCborValue( simple ),
+        if(!(
+            isSimpleCborValue( simple )
+        )) throw new Error(
             "invalid cbor simple value; received: " + simple
         );
 
-        defineReadOnlyProperty(
-            this, "simple", simple
-        );
-        defineReadOnlyProperty(
-            this, "numAs", interpretNumAs
-        );
+        this.simple = simple;
+        this.numAs = interpretNumAs;
     }
 
     toRawObj(): RawCborSimple

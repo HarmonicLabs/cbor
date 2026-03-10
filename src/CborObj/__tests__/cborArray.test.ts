@@ -1,3 +1,4 @@
+import { fromHex, toHex } from "@harmoniclabs/uint8array-utils";
 import { Cbor } from "../../Cbor";
 import { CborArray } from "../CborArray";
 import { CborUInt } from "../CborUInt";
@@ -12,8 +13,8 @@ test("cbor spec indefinite", () => {
     expect( parsed.array.length ).toBe( 3 );
 
     expect(
-        Cbor.encode( parsed ).toString()
-    ).toEqual( str );
+        Cbor.encode( parsed )
+    ).toEqual( fromHex( str ) );
 });
 
 test("standard 1 elem", () => {
@@ -27,8 +28,8 @@ test("standard 1 elem", () => {
     expect( (parsed.array[0] as CborUInt).num ).toEqual( BigInt(1) );
 
     expect(
-        Cbor.encode( parsed ).toString()
-    ).toEqual( str );
+        Cbor.encode( parsed )
+    ).toEqual( fromHex( str ) );
 });
 
 test("1 elem, 1 byte header", () => {
@@ -42,8 +43,8 @@ test("1 elem, 1 byte header", () => {
     expect( (parsed.array[0] as CborUInt).num ).toEqual( BigInt(1) );
 
     expect(
-        Cbor.encode( parsed ).toString()
-    ).toEqual( str );
+        Cbor.encode( parsed )
+    ).toEqual( fromHex( str ) );
 });
 
 test("1 elem, 2 byte header", () => {
@@ -57,8 +58,8 @@ test("1 elem, 2 byte header", () => {
     expect( (parsed.array[0] as CborUInt).num ).toEqual( BigInt(1) );
 
     expect(
-        Cbor.encode( parsed ).toString()
-    ).toEqual( str );
+        Cbor.encode( parsed )
+    ).toEqual( fromHex( str ) );
 });
 
 test("1 elem, 4 byte header", () => {
@@ -72,8 +73,8 @@ test("1 elem, 4 byte header", () => {
     expect( (parsed.array[0] as CborUInt).num ).toEqual( BigInt(1) );
 
     expect(
-        Cbor.encode( parsed ).toString()
-    ).toEqual( str );
+        Cbor.encode( parsed )
+    ).toEqual( fromHex( str ) );
 });
 
 test("1 elem, 8 byte header", () => {
@@ -87,8 +88,8 @@ test("1 elem, 8 byte header", () => {
     expect( (parsed.array[0] as CborUInt).num ).toEqual( BigInt(1) );
 
     expect(
-        Cbor.encode( parsed ).toString()
-    ).toEqual( str );
+        Cbor.encode( parsed )
+    ).toEqual( fromHex( str ) );
 });
 
 test("0 elem, 8 byte header", () => {
@@ -100,8 +101,8 @@ test("0 elem, 8 byte header", () => {
     expect( parsed.array.length ).toBe( 0 );
 
     expect(
-        Cbor.encode( parsed ).toString()
-    ).toEqual( str );
+        Cbor.encode( parsed )
+    ).toEqual( fromHex( str ) );
 });
 
 test("0 elem, indefinite", () => {
@@ -113,6 +114,6 @@ test("0 elem, indefinite", () => {
     expect( parsed.array.length ).toBe( 0 );
 
     expect(
-        Cbor.encode( parsed ).toString()
-    ).toEqual( str );
+        Cbor.encode( parsed )
+    ).toEqual( fromHex( str ) );
 });

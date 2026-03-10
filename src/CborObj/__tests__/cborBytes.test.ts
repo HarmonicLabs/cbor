@@ -1,3 +1,4 @@
+import { fromHex, toHex } from "@harmoniclabs/uint8array-utils";
 import { Cbor } from "../../Cbor"
 import { CborBytes } from "../CborBytes"
 
@@ -17,8 +18,8 @@ describe("bytes", () => {
             // expect( parsed.chunks ).toEqual( emptyBytes );
 
             expect(
-                Cbor.encode( parsed ).toString()
-            ).toEqual( str );
+                Cbor.encode( parsed )
+            ).toEqual( fromHex( str ) );
 
         });
 
@@ -32,8 +33,8 @@ describe("bytes", () => {
             // expect( parsed.chunks ).toEqual( emptyBytes );
 
             expect(
-                Cbor.encode( parsed ).toString()
-            ).toEqual( str );
+                Cbor.encode( parsed )
+            ).toEqual( fromHex( str ) );
 
         });
 
@@ -47,8 +48,8 @@ describe("bytes", () => {
             // expect( parsed.chunks ).toEqual([ emptyBytes ]);
 
             expect(
-                Cbor.encode( parsed ).toString()
-            ).toEqual( str );
+                Cbor.encode( parsed )
+            ).toEqual( fromHex( str ) );
 
         });
 
@@ -62,8 +63,8 @@ describe("bytes", () => {
             // expect( parsed.chunks ).toEqual([ emptyBytes ]);
 
             expect(
-                Cbor.encode( parsed ).toString()
-            ).toEqual( str );
+                Cbor.encode( parsed )
+            ).toEqual( fromHex( str ) );
 
         });
 
@@ -77,8 +78,8 @@ describe("bytes", () => {
             // expect( parsed.chunks ).toEqual([ emptyBytes ]);
 
             expect(
-                Cbor.encode( parsed ).toString()
-            ).toEqual( str );
+                Cbor.encode( parsed )
+            ).toEqual( fromHex( str ) );
         });
 
         describe("indefinite length", () => {
@@ -93,8 +94,8 @@ describe("bytes", () => {
                 // expect( parsed.chunks ).toEqual([]);
 
                 expect(
-                    Cbor.encode( parsed ).toString()
-                ).toEqual( str );
+                    Cbor.encode( parsed )
+                ).toEqual( fromHex( str ) );
 
             });
 
@@ -108,8 +109,8 @@ describe("bytes", () => {
                 // expect( parsed.chunks ).toEqual([ new CborBytes( emptyBytes ) ]);
 
                 expect(
-                    Cbor.encode( parsed ).toString()
-                ).toEqual( str );
+                    Cbor.encode( parsed )
+                ).toEqual( fromHex( str ) );
 
             });
 
@@ -123,8 +124,8 @@ describe("bytes", () => {
                 // expect( parsed.chunks ).toEqual([ emptyBytes, emptyBytes ]);
 
                 expect(
-                    Cbor.encode( parsed ).toString()
-                ).toEqual( str );
+                    Cbor.encode( parsed )
+                ).toEqual( fromHex( str ) );
 
             });
 
@@ -138,8 +139,8 @@ describe("bytes", () => {
                 // expect( parsed.chunks ).toEqual([ emptyBytes, emptyBytes, emptyBytes ]);
 
                 expect(
-                    Cbor.encode( parsed ).toString()
-                ).toEqual( str );
+                    Cbor.encode( parsed )
+                ).toEqual( fromHex( str ) );
 
             });
 
@@ -153,8 +154,8 @@ describe("bytes", () => {
                 // expect( parsed.chunks ).toEqual([ emptyBytes, emptyBytes, emptyBytes, emptyBytes ]);
 
                 expect(
-                    Cbor.encode( parsed ).toString()
-                ).toEqual( str );
+                    Cbor.encode( parsed )
+                ).toEqual( fromHex( str ) );
 
             });
 
@@ -168,8 +169,8 @@ describe("bytes", () => {
                 // expect( parsed.chunks ).toEqual([ emptyBytes, emptyBytes, emptyBytes, emptyBytes, emptyBytes ]);
 
                 expect(
-                    Cbor.encode( parsed ).toString()
-                ).toEqual( str );
+                    Cbor.encode( parsed )
+                ).toEqual( fromHex( str ) );
 
             });
 
@@ -183,8 +184,8 @@ describe("bytes", () => {
                 // expect( parsed.chunks ).toEqual([ emptyBytes ]);
 
                 expect(
-                    Cbor.encode( parsed ).toString()
-                ).toEqual( str );
+                    Cbor.encode( parsed )
+                ).toEqual( fromHex( str ) );
 
             });
 
@@ -197,8 +198,8 @@ describe("bytes", () => {
                 expect( parsed.bytes ).toEqual( emptyBytes );
 
                 expect(
-                    Cbor.encode( parsed ).toString()
-                ).toEqual( str );
+                    Cbor.encode( parsed )
+                ).toEqual( fromHex( str ) );
 
             });
 
@@ -231,7 +232,7 @@ describe("bytes", () => {
             )
         )
 
-        const str = cborStr.toString();
+        const str = toHex( cborStr );
 
         expect(
             str
@@ -250,8 +251,8 @@ describe("bytes", () => {
         );
 
         expect(
-            Cbor.encode( cbor ).toString()
-        ).toEqual( str )
+            Cbor.encode( cbor )
+        ).toEqual( fromHex( str ) )
 
     });
 
@@ -261,7 +262,7 @@ describe("bytes", () => {
         expect(
             Cbor.encode(
                 Cbor.parse( str )
-            ).toString()
-        ).toEqual( str )
+            )
+        ).toEqual( fromHex( str ) )
     })
 })

@@ -1,3 +1,4 @@
+import { fromHex } from "@harmoniclabs/uint8array-utils";
 import { Cbor } from "../../Cbor";
 import { CborNegInt } from "../CborNegInt";
 
@@ -12,8 +13,8 @@ describe("neg int", () => {
         expect( parsed.num ).toEqual( BigInt(-1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
 
     });
 
@@ -26,8 +27,8 @@ describe("neg int", () => {
         expect( parsed.num ).toEqual( BigInt(-1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
 
     });
 
@@ -40,8 +41,8 @@ describe("neg int", () => {
         expect( parsed.num ).toEqual( BigInt(-1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
 
     });
 
@@ -54,8 +55,8 @@ describe("neg int", () => {
         expect( parsed.num ).toEqual( BigInt(-1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
 
     });
 
@@ -68,8 +69,8 @@ describe("neg int", () => {
         expect( parsed.num ).toEqual( BigInt(-1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
         
     });
 
@@ -83,8 +84,8 @@ describe("neg int", () => {
         expect( parsed.num ).toEqual( BigInt(-1) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
     });
 
     test("remembers 10 byte bignum max", () => {
@@ -97,8 +98,8 @@ describe("neg int", () => {
         expect( parsed.num ).toEqual( BigInt(-1) - BigInt( "0xffffffffffffffffffff" ) );
 
         expect(
-            Cbor.encode( parsed ).toString()
-        ).toEqual( str );
+            Cbor.encode( parsed )
+        ).toEqual( fromHex( str ) );
     });
 
     describe("bigNum", () => {

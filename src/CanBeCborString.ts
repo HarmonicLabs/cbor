@@ -1,20 +1,19 @@
-import { ByteString } from "@harmoniclabs/bytestring";
-import { CborString } from "./CborString";
+import { fromHex } from "@harmoniclabs/uint8array-utils";
 
-export type CanBeCborString = string | Uint8Array | ByteString;
+export type CanBeCborString = string | Uint8Array;
 
-export function forceCborString( cStr: CanBeCborString ): CborString
+export function forceCborString( cStr: CanBeCborString ): Uint8Array
 {
-    return new CborString(
-        cStr instanceof ByteString ? cStr.toBuffer() : cStr
-    )
+    if( typeof cStr === "string" ) return fromHex( cStr );
+    if( !( cStr instanceof Uint8Array ) ) throw new Error("invalid cbor string");
+
+    return cStr;
 }
 
 export function canBeCborString( stuff: any ): stuff is CanBeCborString
 {
     return (
         typeof stuff === "string" ||
-        stuff instanceof Uint8Array ||
-        stuff instanceof ByteString
+        stuff instanceof Uint8Array
     );
 }

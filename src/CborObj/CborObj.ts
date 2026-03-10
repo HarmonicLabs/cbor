@@ -12,7 +12,7 @@ import { CborTag, isRawCborTag, RawCborTag } from "./CborTag";
 import { CborText, isRawCborText, RawCborText } from "./CborText";
 import { CborUInt, RawCborUInt, isRawCborUnsigned } from "./CborUInt";
 import { BaseCborError } from "../errors";
-import { assert } from "../utils/assert";
+
 
 export  type RawCborObj
     = RawCborUInt
@@ -93,8 +93,9 @@ export function isRawCborObj( rawCborObj: RawCborObj ): boolean
 
 export function cborObjFromRaw( _rawCborObj: RawCborObj ): CborObj
 {
-    assert(
-        isRawCborObj( _rawCborObj ),
+    if(!(
+        isRawCborObj( _rawCborObj )
+    )) throw new Error(
         "expected a vaild 'RawCborObj' as input; got: " + Object.keys( _rawCborObj )
     );
 

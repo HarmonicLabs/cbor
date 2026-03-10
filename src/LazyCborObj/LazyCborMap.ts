@@ -1,6 +1,6 @@
 import { hasOwn, isObject } from "@harmoniclabs/obj-utils";
 import { CborMapOptions } from "../CborObj";
-import { assert } from "../utils/assert";
+
 
 export type LazyCborMapEntry = {
     k: Uint8Array,
@@ -28,9 +28,10 @@ export class LazyCborMap
 
     constructor( map: LazyCborMapEntry[], options?: CborMapOptions )
     {
-        assert(
+        if(!(
             Array.isArray( map ) &&
-            map.every( isLazyCborMapEntry ),
+            map.every( isLazyCborMapEntry )
+        )) throw new Error(
             "in 'LazyCborMap' constructor: invalid input; got: " + map
         );
         

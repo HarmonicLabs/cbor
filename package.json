@@ -1,6 +1,6 @@
 {
   "name": "@harmoniclabs/cbor",
-  "version": "1.6.6",
+  "version": "2.0.0",
   "description": "cbor library for easy cbor parsing, manipulation and conversion",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -33,9 +33,8 @@
   },
   "homepage": "https://github.com/HarmonicLabs/cbor#readme",
   "dependencies": {
-    "@harmoniclabs/bytestring": "^1.0.0",
     "@harmoniclabs/obj-utils": "^1.0.0",
-    "@harmoniclabs/uint8array-utils": "^1.0.3"
+    "@harmoniclabs/uint8array-utils": "^1.0.4"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.18.6",
