@@ -30,31 +30,8 @@ export class LazyCborArray
 
         let _array: Uint8Array[] = array;
 
-        Object.defineProperties(
-            this, {
-                array: {
-                    get: () => _array,
-                    set: ( arr ) => {
-                        if(
-                            Array.isArray( arr ) &&
-                            arr.every( elem => elem instanceof Uint8Array )
-                        )
-                        {
-                            _array = arr
-                        }
-                    },
-                    enumerable: true,
-                    configurable: false
-                },
-                indefinite: {
-                    value: indefinite,
-                    writable: false,
-                    enumerable: true,
-                    configurable: false
-                }
-            }
-        );
-
+        this.array = array;
+        this.indefinite = indefinite;
     }
 
     clone(): LazyCborArray

@@ -44,30 +44,8 @@ export class LazyCborMap
 
         let _map: LazyCborMapEntry[] = map;
 
-        Object.defineProperties(
-            this, {
-                array: {
-                    get: () => _map,
-                    set: ( newMap ) => {
-                        if(
-                            Array.isArray( newMap ) &&
-                            newMap.every( isLazyCborMapEntry )
-                        )
-                        {
-                            _map = newMap
-                        }
-                    },
-                    enumerable: true,
-                    configurable: false
-                },
-                indefinite: {
-                    value: indefinite,
-                    writable: false,
-                    enumerable: true,
-                    configurable: false
-                }
-            }
-        );
+        this.map = map;
+        this.indefinite = indefinite;
     }
 
     clone(): LazyCborMap

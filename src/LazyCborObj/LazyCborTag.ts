@@ -21,33 +21,8 @@ export class LazyCborTag
 
         let _tag: bigint = tag;
         let _data: LazyCborObj = data
-        Object.defineProperties(
-            this, {
-                tag: {
-                    get: () => _tag,
-                    set: ( val ) => {
-                        if( typeof tag === "number" ) tag = BigInt( tag );
-                        if( typeof tag === "bigint" )
-                        {
-                            _tag = tag;
-                        }
-                    },
-                    enumerable: true,
-                    configurable: false
-                },
-                data: {
-                    get: () => _data,
-                    set: ( val ) => {
-                        if( isLazyCborObj( val ) )
-                        {
-                            _data = val
-                        }
-                    },
-                    enumerable: true,
-                    configurable: false
-                }
-            }
-        );
+        this.tag = tag;
+        this.data = data;
     }
 
     clone(): LazyCborTag
