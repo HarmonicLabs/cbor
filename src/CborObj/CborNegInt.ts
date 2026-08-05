@@ -53,18 +53,22 @@ export class CborNegInt
         )) throw new Error(
             "neg CBOR numbers must be less than 0; got: " + neg
         );
-        neg = BigInt( neg );
+        const value = BigInt( neg );
 
         // https://www.rfc-editor.org/rfc/rfc8949.html#name-bignums
-        if( neg < minBigInt )
+        if( value < minBigInt )
         {
-            neg = BigInt(-1) - BigInt(neg);
-            let hex = neg.toString(16);
+            // the tag-3 payload is `-1 - value`; it must stay SEPARATE from
+            // the value itself. Reusing the variable here left a NEGATIVE
+            // cbor object holding a POSITIVE number, so `Cbor.encode` threw
+            // "encoding invalid negative integer as CBOR" and no integer
+            // below -(2^64) could be serialised at all.
+            let hex = ( BigInt(-1) - value ).toString(16);
             if( (hex.length % 2) === 1 ) hex = "0" + hex;
             this.bigNumEncoding = new CborBytes( fromHex( hex ) );
         }
 
-        this._num = BigInt( neg );
+        this._num = value;
     }
 
     addInfos: number;
@@ -84,14 +88,16 @@ export class CborNegInt
     {
         if( typeof neg === "number" ) neg = BigInt( neg );
         
-        this.num = neg;
+        this.num = neg; // may derive `bigNumEncoding` for out-of-range values
         this.addInfos = addInfos ?? headerFollowingToAddInfos( neg );
         // this.followingHeaderBytes = followingHeaderBytes;
 
+        // ONLY an explicit encoding overrides what the setter derived: the
+        // unconditional `else undefined` used to discard it, so a value
+        // needing a bignum lost its encoding on the way out of the
+        // constructor.
         if( bigNumEncoding instanceof CborBytes )
             this.bigNumEncoding = bigNumEncoding;
-        else
-            this.bigNumEncoding = undefined;
     }
 
     static bigNum(

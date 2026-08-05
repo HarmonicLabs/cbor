@@ -75,12 +75,14 @@ export class CborUInt
         public subCborRef?: SubCborRef
     )
     {
-        this.num = uint;
+        this.num = uint; // may derive `bigNumEncoding` for out-of-range values
         this.addInfos = addInfos ?? headerFollowingToAddInfos( uint );
+        // ONLY an explicit encoding overrides what the setter derived; the
+        // unconditional `else undefined` used to discard it, which is why
+        // every integer above 2^64 hit the encoder's "bigNumEncoding is not
+        // set" warn-and-recover path and dumped itself to the console.
         if( bigNumEncoding instanceof CborBytes )
             this.bigNumEncoding = bigNumEncoding;
-        else
-            this.bigNumEncoding = undefined;
     }
 
     static bigNum(
