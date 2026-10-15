@@ -63,7 +63,24 @@ export class CborUInt
     addInfos: number;
     bigNumEncoding: CborBytes | undefined;
 
-    isBigNum(): boolean
+    /**
+     * `true` when this integer is represented as an RFC 8949 bignum
+     * (tag 2 over a byte string) rather than a major-type integer head.
+     *
+     * For objects returned by `Cbor.parse` / `Cbor.parseWithOffset` this is
+     * `true` exactly when the source bytes were a `#6.2(bytes)` bignum,
+     * whatever the value (`c24101` included); integers read from a
+     * plain head are never bignums. Decoders of fixed-width fields
+     * (cardano-ledger `decodeWord64` and friends) should reject it.
+     *
+     * For constructed objects it is `true` when the value will be encoded
+     * as a bignum (`.bigNum(...)`, or a value outside the 64-bit head range).
+     *
+     * Read-only; encoding is unaffected.
+     *
+     * Previously a method (`isBigNum()`); it is now a read-only property.
+     */
+    get isBigNum(): boolean
     {
         return this.bigNumEncoding instanceof CborBytes;
     }

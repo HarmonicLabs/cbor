@@ -69,11 +69,11 @@ describe("RFC 8949 bignums (tags 2 and 3)", () => {
     });
 
     test("values outside the native range carry a bignum encoding", () => {
-        expect( new CborUInt(   (1n << 64n)      ).isBigNum() ).toBe( true );
-        expect( new CborNegInt( -(1n << 64n) - 1n ).isBigNum() ).toBe( true );
+        expect( new CborUInt(   (1n << 64n)      ).isBigNum ).toBe( true );
+        expect( new CborNegInt( -(1n << 64n) - 1n ).isBigNum ).toBe( true );
         // ...and values inside it do NOT (a spurious tag would change bytes)
-        expect( new CborUInt(   (1n << 64n) - 1n ).isBigNum() ).toBe( false );
-        expect( new CborNegInt( -(1n << 64n)     ).isBigNum() ).toBe( false );
+        expect( new CborUInt(   (1n << 64n) - 1n ).isBigNum ).toBe( false );
+        expect( new CborNegInt( -(1n << 64n)     ).isBigNum ).toBe( false );
     });
 
     test("encoding emits no warnings for large values", () => {
