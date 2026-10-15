@@ -12,6 +12,9 @@ API added or changed for the node-diversity-conformance `cbor-decoding` items
 | 583 | `CborNegInt.bigNum(bytes)` / `.num` | an empty magnitude (`c340`) is -1 instead of throwing. |
 | 576 | `CborPositiveRational.fromCborObjOrUndef` | `undefined` unless the object is `#6.30([uint, uint])`. |
 | 576 | `CborPositiveRational.fromCborObj` (new) | same check, throws instead of returning `undefined`. |
+| 584 | `CborTag.subCborRef` | now set by `Cbor.parse` (keepRef, the default) like every other parsed object. |
+| 584 | `CborTag.addInfos: number` (new; 4th constructor argument) | head width of the tag number; parsed from the source (`d9 0079` stays 3 bytes), minimal by default; honoured by `Cbor.encode`. Parsed tag numbers are bigints without precision loss. |
+| — | `Cbor.parse` | rejects an indefinite-length tag head (`df ..`), which used to parse as tag -1. |
 
 Breaking for callers of the old method form: `x.isBigNum()` becomes `x.isBigNum`
 (a getter cannot be called; no caller existed in the HarmonicLabs libraries).
