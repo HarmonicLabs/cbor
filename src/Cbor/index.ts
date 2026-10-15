@@ -977,7 +977,7 @@ export class Cbor
                         );
                     }
                     // else just tag
-                    return new CborTag( l, data );
+                    return new CborTag( l, data, getSubCborRef( startOffset ) );
                 }
                 case MajorType.float_or_simple: {
                     const nLen = Number( length );
