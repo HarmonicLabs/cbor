@@ -76,3 +76,37 @@ describe("isBigNum", () => {
         expect( ( Cbor.parse( "c34101" ) as CborNegInt ).clone().isBigNum ).toBe( true );
     });
 });
+
+/**
+ * An empty magnitude is a valid bignum (RFC 8949 §3.4.3: the byte string
+ * is the big-endian value, so zero bytes is 0); cardano-ledger accepts
+ * `c240` as Plutus Data integer 0 (node-diversity-conformance item 583).
+ */
+describe("empty bignum magnitude", () => {
+
+    test.each([
+        [ "c240", 0n ],
+        [ "c340", -1n ],
+        [ "c25f40ff", 0n ],   // chunked, one empty chunk
+        [ "c35fff", -1n ],    // chunked, no chunks
+        [ "82c24001", null ],
+    ])( "%s decodes", ( hex, value ) => {
+        const parsed = Cbor.parse( hex );
+        if( value !== null )
+        {
+            const n = parsed as CborUInt | CborNegInt;
+            expect( n.isBigNum ).toBe( true );
+            expect( n.num ).toEqual( value );
+            expect( n.clone().num ).toEqual( value );
+        }
+        // the empty magnitude is written back as it came
+        expect( toHex( Cbor.encode( parsed ) ) ).toEqual( hex );
+    });
+
+    test("bigNum factories", () => {
+        expect( CborUInt.bigNum( new CborBytes( new Uint8Array( 0 ) ) ).num ).toEqual( 0n );
+        expect( CborNegInt.bigNum( new CborBytes( new Uint8Array( 0 ) ) ).num ).toEqual( -1n );
+        expect( CborUInt.bigNum( new CborBytes( new Uint8Array([ 0, 0, 5 ]) ) ).num ).toEqual( 5n );
+        expect( CborNegInt.bigNum( new CborBytes( new Uint8Array([ 0, 5 ]) ) ).num ).toEqual( -6n );
+    });
+});

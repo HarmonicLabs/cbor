@@ -31,3 +31,15 @@ export function unsafeForceUInt( toForce: CanBeUInteger ): number
 
     return Number( toForce ); 
 }
+/**
+ * big-endian unsigned magnitude of a bignum (RFC 8949 §3.4.3);
+ * an empty byte string is a valid encoding of 0
+ */
+export function bigUIntFromBytes( bytes: Uint8Array ): bigint
+{
+    if( bytes.length === 0 ) return BigInt( 0 );
+    let hex = "";
+    for( let i = 0; i < bytes.length; i++ )
+        hex += bytes[i].toString( 16 ).padStart( 2, "0" );
+    return BigInt( "0x" + hex );
+}

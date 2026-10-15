@@ -3,10 +3,11 @@ import { Cloneable } from "../utils/Cloneable";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { ICborObj } from "./interfaces/ICborObj";
 import { CborBytes } from "./CborBytes";
-import { fromHex, toHex } from "@harmoniclabs/uint8array-utils";
+import { fromHex } from "@harmoniclabs/uint8array-utils";
 import { minBigInt } from "../constants/max";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 import { SubCborRef } from "../SubCborRef";
+import { bigUIntFromBytes } from "../utils/ints";
 
 export type RawCborNegInt = {
     neg: bigint
@@ -37,12 +38,7 @@ export class CborNegInt
     {
         if( this.bigNumEncoding instanceof CborBytes )
         {
-            this._num = -(
-                BigInt(
-                    "0x" +
-                    toHex( this.bigNumEncoding.bytes )
-                ) + BigInt( 1 )
-            );
+            this._num = -( bigUIntFromBytes( this.bigNumEncoding.bytes ) + BigInt( 1 ) );
         }
         return this._num;
     }
@@ -133,7 +129,7 @@ export class CborNegInt
             if( (hex.length % 2) === 1 ) hex = "0" + hex; // even length
             encoding = new CborBytes( fromHex( hex ) ); // bytes
         }
-        else { n = BigInt(-1) - BigInt( "0x" + toHex( encoding.bytes ) ); } // was bytes
+        else { n = BigInt(-1) - bigUIntFromBytes( encoding.bytes ); } // was bytes; empty magnitude is -1
         
         return new CborNegInt( n, 0, encoding, subCborRef );
     }

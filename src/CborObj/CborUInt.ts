@@ -4,10 +4,11 @@ import { Cloneable } from "../utils/Cloneable";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { ICborObj } from "./interfaces/ICborObj";
 import { CborBytes } from "./CborBytes";
-import { fromHex, toHex } from "@harmoniclabs/uint8array-utils";
+import { fromHex } from "@harmoniclabs/uint8array-utils";
 import { maxBigInt } from "../constants/max";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 import { SubCborRef } from "../SubCborRef";
+import { bigUIntFromBytes } from "../utils/ints";
 
 export type RawCborUInt = {
     uint: bigint
@@ -34,10 +35,7 @@ export class CborUInt
     {
         if( this.bigNumEncoding instanceof CborBytes )
         {
-            this._num = BigInt(
-                "0x" +
-                toHex( this.bigNumEncoding.bytes )
-            );
+            this._num = bigUIntFromBytes( this.bigNumEncoding.bytes );
         }
         return this._num;
     }
@@ -116,7 +114,7 @@ export class CborUInt
             if( (hex.length % 2) === 1 ) hex = "0" + hex;
             encoding = new CborBytes( fromHex( hex ) );
         }
-        else { n = BigInt( "0x" + toHex( encoding.bytes ) ); }
+        else { n = bigUIntFromBytes( encoding.bytes ); } // empty magnitude is 0
         
         return new CborUInt( n, 0, encoding, subCborRef );
     }
