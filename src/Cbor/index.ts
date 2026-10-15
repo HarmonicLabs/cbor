@@ -474,7 +474,7 @@ class CborEncoding
 
         if( cObj instanceof CborTag )
         {
-            this.appendTypeAndLength( MajorType.tag, cObj.tag );
+            this.appendTypeAndLength( MajorType.tag, cObj.tag, cObj.addInfos );
             this.appendCborObjEncoding( cObj.data )
             return cObj.subCborRef = new SubCborRef({
                 _bytes: this._buff, // will be overwritten at top level `.encode` call
@@ -977,7 +977,7 @@ export class Cbor
                         );
                     }
                     // else just tag
-                    return new CborTag( l, data, getSubCborRef( startOffset ) );
+                    return new CborTag( length, data, getSubCborRef( startOffset ), addInfos );
                 }
                 case MajorType.float_or_simple: {
                     const nLen = Number( length );
