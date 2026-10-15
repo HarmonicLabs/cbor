@@ -808,7 +808,7 @@ export class Cbor
             const length = getLength( addInfos );
 
             if( length < 0 &&
-                ( major < 2 || major > 6 )
+                ( major < 2 || major > 5 ) // only strings, arrays and maps have an indefinite form
             )
             {
                 throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
@@ -1218,7 +1218,7 @@ export class Cbor
             const postLenOffset = offset;
 
             if( length < 0 &&
-                ( major < 2 || major > 6 )
+                ( major < 2 || major > 5 ) // only strings, arrays and maps have an indefinite form
             )
             {
                 throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
@@ -1359,7 +1359,7 @@ export class Cbor
             const length = getLength( addInfos );
 
             if( length < 0 &&
-                ( major < 2 || major > 6 )
+                ( major < 2 || major > 5 ) // only strings, arrays and maps have an indefinite form
             )
             {
                 throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
