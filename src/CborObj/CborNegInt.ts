@@ -83,11 +83,9 @@ export class CborNegInt
      * For constructed objects it is `true` when the value will be encoded
      * as a bignum (`.bigNum(...)`, or a value outside the 64-bit head range).
      *
-     * Read-only; encoding is unaffected.
-     *
-     * Previously a method (`isBigNum()`); it is now a read-only property.
+     * Encoding is unaffected. A method, as in 2.0.2, so existing callers keep working.
      */
-    get isBigNum(): boolean
+    isBigNum(): boolean
     {
         return this.bigNumEncoding instanceof CborBytes;
     }

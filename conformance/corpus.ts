@@ -57,7 +57,7 @@ for (const rule of rules) {
         if (toHex(Cbor.encode(parsed)) === hex) c.identity++;
         let empty = false, big = false, ct = false, cb = false, nrt = false;
         walk(parsed, o => {
-            if ((o instanceof CborUInt || o instanceof CborNegInt) && o.isBigNum) {
+            if ((o instanceof CborUInt || o instanceof CborNegInt) && o.isBigNum()) {
                 big = true;
                 if (o.bigNumEncoding!.bytes.length === 0) empty = true;
             }

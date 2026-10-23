@@ -26,7 +26,7 @@ describe("isBigNum", () => {
     ] as const)( "parsed bignum %s has isBigNum = true", ( hex, Cls, value ) => {
         const parsed = Cbor.parse( hex ) as CborUInt | CborNegInt;
         expect( parsed instanceof Cls ).toBe( true );
-        expect( parsed.isBigNum ).toBe( true );
+        expect( parsed.isBigNum() ).toBe( true );
         expect( parsed.num ).toEqual( value );
         // encoding unchanged: the bignum form is written back
         expect( toHex( Cbor.encode( parsed ) ) ).toEqual( hex );
@@ -41,7 +41,7 @@ describe("isBigNum", () => {
         [ "3bffffffffffffffff", -(1n << 64n) ],
     ])( "parsed head %s has isBigNum = false", ( hex, value ) => {
         const parsed = Cbor.parse( hex ) as CborUInt | CborNegInt;
-        expect( parsed.isBigNum ).toBe( false );
+        expect( parsed.isBigNum() ).toBe( false );
         expect( parsed.num ).toEqual( value );
         expect( toHex( Cbor.encode( parsed ) ) ).toEqual( hex );
     });
@@ -50,30 +50,30 @@ describe("isBigNum", () => {
         const { parsed, offset } = Cbor.parseWithOffset( "8301c2410120" );
         expect( offset ).toBe( 6 );
         const arr = ( parsed as CborArray ).array as ( CborUInt | CborNegInt )[];
-        expect( arr.map( x => x.isBigNum ) ).toEqual([ false, true, false ]);
+        expect( arr.map( x => x.isBigNum() ) ).toEqual([ false, true, false ]);
     });
 
-    test("is a read-only boolean property", () => {
+    test("is a method, as in 2.0.2", () => {
         const parsed = Cbor.parse( "c24101" ) as CborUInt;
-        expect( typeof parsed.isBigNum ).toBe( "boolean" );
-        expect( () => { ( parsed as any ).isBigNum = false; } ).toThrow();
-        expect( parsed.isBigNum ).toBe( true );
+        // a method, as in 2.0.2 (callers of `isBigNum()` keep working)
+        expect( typeof parsed.isBigNum ).toBe( "function" );
+        expect( parsed.isBigNum() ).toBe( true );
     });
 
     test("constructed values", () => {
-        expect( new CborUInt( 1 ).isBigNum ).toBe( false );
-        expect( new CborNegInt( -1 ).isBigNum ).toBe( false );
-        expect( new CborUInt( 1n << 64n ).isBigNum ).toBe( true );
-        expect( new CborNegInt( -(1n << 64n) - 1n ).isBigNum ).toBe( true );
-        expect( CborUInt.bigNum( 1 ).isBigNum ).toBe( true );
-        expect( CborNegInt.bigNum( -1 ).isBigNum ).toBe( true );
-        expect( new CborUInt( 1, 0, new CborBytes( new Uint8Array([ 1 ]) ) ).isBigNum ).toBe( true );
+        expect( new CborUInt( 1 ).isBigNum() ).toBe( false );
+        expect( new CborNegInt( -1 ).isBigNum() ).toBe( false );
+        expect( new CborUInt( 1n << 64n ).isBigNum() ).toBe( true );
+        expect( new CborNegInt( -(1n << 64n) - 1n ).isBigNum() ).toBe( true );
+        expect( CborUInt.bigNum( 1 ).isBigNum() ).toBe( true );
+        expect( CborNegInt.bigNum( -1 ).isBigNum() ).toBe( true );
+        expect( new CborUInt( 1, 0, new CborBytes( new Uint8Array([ 1 ]) ) ).isBigNum() ).toBe( true );
     });
 
     test("clone keeps it", () => {
-        expect( ( Cbor.parse( "c24101" ) as CborUInt ).clone().isBigNum ).toBe( true );
-        expect( ( Cbor.parse( "01" ) as CborUInt ).clone().isBigNum ).toBe( false );
-        expect( ( Cbor.parse( "c34101" ) as CborNegInt ).clone().isBigNum ).toBe( true );
+        expect( ( Cbor.parse( "c24101" ) as CborUInt ).clone().isBigNum() ).toBe( true );
+        expect( ( Cbor.parse( "01" ) as CborUInt ).clone().isBigNum() ).toBe( false );
+        expect( ( Cbor.parse( "c34101" ) as CborNegInt ).clone().isBigNum() ).toBe( true );
     });
 });
 
@@ -95,7 +95,7 @@ describe("empty bignum magnitude", () => {
         if( value !== null )
         {
             const n = parsed as CborUInt | CborNegInt;
-            expect( n.isBigNum ).toBe( true );
+            expect( n.isBigNum() ).toBe( true );
             expect( n.num ).toEqual( value );
             expect( n.clone().num ).toEqual( value );
         }
