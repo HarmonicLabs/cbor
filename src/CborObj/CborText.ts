@@ -33,7 +33,12 @@ export class CborText
 
     chunks: string | CborText[];
     
-    get isDefiniteLength()
+    /**
+     * `false` when the text was an indefinite-length (chunked) string
+     * (`7f ... ff`, kept as `chunks` by `Cbor.parse`), `true` otherwise.
+     * Mirrors `CborBytes.isDefiniteLength`.
+     */
+    get isDefiniteLength(): boolean
     {
         return typeof this.chunks === "string";
     }

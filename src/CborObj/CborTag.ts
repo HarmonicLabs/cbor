@@ -4,6 +4,7 @@ import { canBeUInteger } from "../utils/ints";
 import { CborObj, cborObjFromRaw, isCborObj, isRawCborObj, RawCborObj } from "./CborObj"
 import { ToRawObj } from "./interfaces/ToRawObj"
 import { SubCborRef } from "../SubCborRef";
+import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 
 export type RawCborTag = {
     tag: number | bigint,
@@ -31,10 +32,18 @@ export class CborTag
 
     readonly data: CborObj
 
+    /**
+     * additional info of the tag head (24..27 select a 1, 2, 4 or 8 byte
+     * tag number); kept from the source so that a non-minimal head such as
+     * `d9 0079` re-encodes as it came. Defaults to the minimal head.
+     */
+    addInfos: number;
+
     constructor(
         tag: number | bigint,
         data: CborObj,
-        public subCborRef?: SubCborRef
+        public subCborRef?: SubCborRef,
+        addInfos?: number
     )
     {
         if( typeof tag === "number" ) tag = BigInt( tag );
@@ -48,6 +57,7 @@ export class CborTag
 
         this.tag = tag;
         this.data = data;
+        this.addInfos = addInfos ?? headerFollowingToAddInfos( tag );
     }
 
     toRawObj(): RawCborTag
@@ -63,7 +73,8 @@ export class CborTag
         return new CborTag(
             this.tag,
             this.data.clone(),
-            this.subCborRef?.clone()
+            this.subCborRef?.clone(),
+            this.addInfos
         );
     }
 }

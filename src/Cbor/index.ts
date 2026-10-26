@@ -474,7 +474,7 @@ class CborEncoding
 
         if( cObj instanceof CborTag )
         {
-            this.appendTypeAndLength( MajorType.tag, cObj.tag );
+            this.appendTypeAndLength( MajorType.tag, cObj.tag, cObj.addInfos );
             this.appendCborObjEncoding( cObj.data )
             return cObj.subCborRef = new SubCborRef({
                 _bytes: this._buff, // will be overwritten at top level `.encode` call
@@ -808,7 +808,7 @@ export class Cbor
             const length = getLength( addInfos );
 
             if( length < 0 &&
-                ( major < 2 || major > 6 )
+                ( major < 2 || major > 5 ) // only strings, arrays and maps have an indefinite form
             )
             {
                 throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
@@ -977,7 +977,7 @@ export class Cbor
                         );
                     }
                     // else just tag
-                    return new CborTag( l, data );
+                    return new CborTag( length, data, getSubCborRef( startOffset ), addInfos );
                 }
                 case MajorType.float_or_simple: {
                     const nLen = Number( length );
@@ -1218,7 +1218,7 @@ export class Cbor
             const postLenOffset = offset;
 
             if( length < 0 &&
-                ( major < 2 || major > 6 )
+                ( major < 2 || major > 5 ) // only strings, arrays and maps have an indefinite form
             )
             {
                 throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );
@@ -1359,7 +1359,7 @@ export class Cbor
             const length = getLength( addInfos );
 
             if( length < 0 &&
-                ( major < 2 || major > 6 )
+                ( major < 2 || major > 5 ) // only strings, arrays and maps have an indefinite form
             )
             {
                 throw new BaseCborError( "unexpected indefinite length element while parsing CBOR" );

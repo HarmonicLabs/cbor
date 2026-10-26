@@ -3,10 +3,11 @@ import { Cloneable } from "../utils/Cloneable";
 import { ToRawObj } from "./interfaces/ToRawObj";
 import { ICborObj } from "./interfaces/ICborObj";
 import { CborBytes } from "./CborBytes";
-import { fromHex, toHex } from "@harmoniclabs/uint8array-utils";
+import { fromHex } from "@harmoniclabs/uint8array-utils";
 import { minBigInt } from "../constants/max";
 import { headerFollowingToAddInfos } from "../utils/headerFollowingToAddInfos";
 import { SubCborRef } from "../SubCborRef";
+import { bigUIntFromBytes } from "../utils/ints";
 
 export type RawCborNegInt = {
     neg: bigint
@@ -37,12 +38,7 @@ export class CborNegInt
     {
         if( this.bigNumEncoding instanceof CborBytes )
         {
-            this._num = -(
-                BigInt(
-                    "0x" +
-                    toHex( this.bigNumEncoding.bytes )
-                ) + BigInt( 1 )
-            );
+            this._num = -( bigUIntFromBytes( this.bigNumEncoding.bytes ) + BigInt( 1 ) );
         }
         return this._num;
     }
@@ -74,6 +70,21 @@ export class CborNegInt
     addInfos: number;
     bigNumEncoding: CborBytes | undefined;
 
+    /**
+     * `true` when this integer is represented as an RFC 8949 bignum
+     * (tag 3 over a byte string) rather than a major-type integer head.
+     *
+     * For objects returned by `Cbor.parse` / `Cbor.parseWithOffset` this is
+     * `true` exactly when the source bytes were a `#6.3(bytes)` bignum,
+     * whatever the value (`c34101` included); integers read from a
+     * plain head are never bignums. Decoders of fixed-width fields
+     * (cardano-ledger `decodeWord64` and friends) should reject it.
+     *
+     * For constructed objects it is `true` when the value will be encoded
+     * as a bignum (`.bigNum(...)`, or a value outside the 64-bit head range).
+     *
+     * Encoding is unaffected. A method, as in 2.0.2, so existing callers keep working.
+     */
     isBigNum(): boolean
     {
         return this.bigNumEncoding instanceof CborBytes;
@@ -116,7 +127,7 @@ export class CborNegInt
             if( (hex.length % 2) === 1 ) hex = "0" + hex; // even length
             encoding = new CborBytes( fromHex( hex ) ); // bytes
         }
-        else { n = BigInt(-1) - BigInt( "0x" + toHex( encoding.bytes ) ); } // was bytes
+        else { n = BigInt(-1) - bigUIntFromBytes( encoding.bytes ); } // was bytes; empty magnitude is -1
         
         return new CborNegInt( n, 0, encoding, subCborRef );
     }

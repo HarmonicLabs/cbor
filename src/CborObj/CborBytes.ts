@@ -47,7 +47,11 @@ export class CborBytes
     **/
     chunks: Uint8Array | CborBytes[];
 
-    get isDefiniteLength()
+    /**
+     * `false` when the bytes were an indefinite-length (chunked) string
+     * (`5f ... ff`, kept as `chunks` by `Cbor.parse`), `true` otherwise.
+     */
+    get isDefiniteLength(): boolean
     {
         return this.chunks instanceof Uint8Array;
     }

@@ -27,18 +27,37 @@ export class CborPositiveRational extends CborTag
         this.den = _den;
     }
 
+    /**
+     * `#6.30([ uint, uint ])` (RFC 8949 rational, as the Cardano CDDL
+     * `rational` / `unit_interval`); `undefined` for anything else,
+     * including any other tag number and arrays that are not exactly a pair.
+     */
     static fromCborObjOrUndef( cObj: CborObj | undefined ): CborPositiveRational | undefined
     {
         return (
             (
-                cObj instanceof CborTag && 
+                cObj instanceof CborTag &&
+                BigInt( cObj.tag ) === BigInt( 30 ) &&
                 cObj.data instanceof CborArray &&
+                cObj.data.array.length === 2 &&
                 cObj.data.array[0] instanceof CborUInt &&
                 cObj.data.array[1] instanceof CborUInt
             )?
             new CborPositiveRational( cObj.data.array[0].num, cObj.data.array[1].num )
             : undefined
         ); 
+    }
+
+    /**
+     * like `fromCborObjOrUndef` but throws if `cObj` is not
+     * `#6.30([ uint, uint ])`
+     */
+    static fromCborObj( cObj: CborObj ): CborPositiveRational
+    {
+        const r = CborPositiveRational.fromCborObjOrUndef( cObj );
+        if( r === undefined )
+            throw new Error( "invalid CBOR for CborPositiveRational; expected #6.30([ uint, uint ])" );
+        return r;
     }
 
     static fromNumber( n: number ): CborPositiveRational
